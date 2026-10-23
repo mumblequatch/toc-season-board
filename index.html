@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TOC Season Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap">
+<style>
+/* Layout: one column per season plus the B team, side by side; snapshots run underneath. */
+:root {
+  --paper: #f6f8fb;
+  --card: #ffffff;
+  --ink: #1d2430;
+  --muted: #667085;
+  --rule: #cfdcec;
+  --accent: #c8433b;
+  --accent-soft: #fbe9e7;
+  --bteam: #eef2f7;
+  --focus: #2f63b5;
+  --display: "Courier Prime", "Courier New", Courier, monospace;
+  --label: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #11161f; --card: #19212d; --ink: #e5e9f0; --muted: #94a0b3;
+    --rule: #2c3a4f; --accent: #e3685f; --accent-soft: #3a2224; --bteam: #151c27; --focus: #7aa7ec;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #11161f; --card: #19212d; --ink: #e5e9f0; --muted: #94a0b3;
+  --rule: #2c3a4f; --accent: #e3685f; --accent-soft: #3a2224; --bteam: #151c27; --focus: #7aa7ec;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font-family: var(--label); font-size: 15px; }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 60px; display: grid; gap: 18px; }
+header.top { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; justify-content: space-between; }
+h1 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 1.7rem; letter-spacing: .01em; }
+h1 small { display: block; font-family: var(--label); font-weight: 500; font-size: .74rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, .btn { font-family: var(--label); font-weight: 600; font-size: .78rem; letter-spacing: .05em; text-transform: uppercase; padding: 8px 11px; border-radius: 4px; border: 1px solid var(--rule); background: var(--card); color: var(--ink); cursor: pointer; line-height: 1; }
+button:hover:not(:disabled), .btn:hover { border-color: var(--muted); }
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, .btn:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.quiet { border-color: transparent; background: transparent; padding: 6px 8px; }
+button.danger { color: var(--accent); }
+.sep { width: 1px; height: 22px; background: var(--rule); }
+label.toggle { display: inline-flex; gap: 6px; align-items: center; font-size: .8rem; color: var(--muted); cursor: pointer; }
+.board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(270px, 1fr); gap: 14px; overflow-x: auto; padding-bottom: 6px; align-items: start; }
+@media (max-width: 720px) { .board { grid-auto-flow: row; grid-auto-columns: auto; overflow-x: visible; } }
+.col { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; display: flex; flex-direction: column; min-width: 0; }
+.col.bteam { background: var(--bteam); }
+.col-head { padding: 12px 12px 10px; border-bottom: 2px solid var(--accent); display: grid; gap: 4px; }
+.col.bteam .col-head { border-bottom-color: var(--rule); }
+.col-title { display: flex; gap: 8px; align-items: center; }
+.col-title input { flex: 1; min-width: 0; font-family: var(--display); font-weight: 700; font-size: 1.15rem; color: var(--ink); background: transparent; border: 1px solid transparent; border-radius: 3px; padding: 2px 4px; margin-left: -5px; }
+.col-title input:hover { border-color: var(--rule); }
+.col-title .static { flex: 1; font-family: var(--display); font-weight: 700; font-size: 1.15rem; }
+.count { font-size: .72rem; font-weight: 600; letter-spacing: .06em; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.note { font-family: var(--label); font-size: .82rem; color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 3px; padding: 2px 4px; margin-left: -5px; width: 100%; }
+.note:hover { border-color: var(--rule); }
+ol.list { list-style: none; margin: 0; padding: 8px; display: grid; gap: 6px; min-height: 64px; }
+.empty-hint { font-size: .8rem; color: var(--muted); font-style: italic; padding: 10px 6px; text-align: center; }
+li.ep { background: var(--card); border: 1px solid var(--rule); border-radius: 4px; padding: 7px 8px 7px 4px; display: grid; grid-template-columns: auto auto 1fr auto; gap: 2px 8px; align-items: start; }
+.col.bteam li.ep { grid-template-columns: auto 1fr auto; }
+li.ep.ghost { opacity: .35; }
+li.ep.chosen { box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+.grip { cursor: grab; color: var(--muted); padding: 2px 4px; font-size: 1rem; line-height: 1.3; user-select: none; touch-action: none; }
+.num { font-family: var(--display); font-weight: 700; color: var(--accent); min-width: 1.6em; text-align: right; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.body { min-width: 0; }
+.t { font-family: var(--display); font-weight: 700; font-size: .98rem; line-height: 1.35; overflow-wrap: anywhere; }
+.g { font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+.lg { font-size: .84rem; line-height: 1.4; color: var(--ink); opacity: .85; margin-top: 4px; }
+body:not(.show-loglines) .lg { display: none; }
+.more { font-size: 1rem; padding: 2px 6px; }
+.actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 4px 2px 4px; border-top: 1px dashed var(--rule); margin-top: 6px; }
+.actions button { font-size: .7rem; padding: 6px 8px; }
+.edit { grid-column: 1 / -1; display: grid; gap: 6px; padding: 8px 4px 2px; border-top: 1px dashed var(--rule); margin-top: 6px; }
+.edit input, .edit textarea, .add input, .snapform textarea { font: inherit; font-size: .88rem; color: var(--ink); background: var(--paper); border: 1px solid var(--rule); border-radius: 3px; padding: 6px 8px; width: 100%; }
+.edit textarea, .snapform textarea { min-height: 3.6em; resize: vertical; }
+.row { display: flex; gap: 6px; flex-wrap: wrap; }
+.add { padding: 0 8px 10px; display: grid; gap: 6px; }
+section.snaps { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 14px; display: grid; gap: 12px; }
+section.snaps h2 { margin: 0; font-family: var(--display); font-size: 1.15rem; }
+.snaps-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.snapform { display: grid; gap: 8px; max-width: 640px; }
+.snapform[hidden] { display: none; }
+ul.snaplist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+li.snap { border: 1px solid var(--rule); border-radius: 4px; padding: 10px 12px; display: grid; gap: 6px; }
+.snap-top { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; justify-content: space-between; }
+.snap-date { font-family: var(--display); font-weight: 700; }
+.snap-sum { font-size: .76rem; color: var(--muted); letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+.snap-note { font-size: .9rem; line-height: 1.45; white-space: pre-wrap; max-width: 75ch; }
+.snap-view { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; padding-top: 6px; border-top: 1px dashed var(--rule); }
+.snap-view h3 { margin: 0 0 4px; font-family: var(--display); font-size: .92rem; }
+.snap-view ol { margin: 0; padding-left: 1.6em; font-size: .85rem; line-height: 1.45; }
+.snap-view ul { margin: 0; padding-left: 1.1em; font-size: .85rem; line-height: 1.45; }
+.status { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--paper); padding: 10px 14px; border-radius: 6px; font-size: .86rem; display: flex; gap: 12px; align-items: center; box-shadow: 0 6px 20px rgba(0,0,0,.25); max-width: calc(100vw - 32px); }
+.status[hidden] { display: none; }
+.status button { background: transparent; color: var(--paper); border-color: currentColor; }
+.hidden-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+<!-- Plausible Analytics -->
+<script async src="https://plausible.io/js/pa-l22G6JEP7wvc_HwvZWRQ-.js"></script>
+<script>
+  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+  plausible.init()
+</script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>The Other City<small>Season board</small></h1>
+    <div class="toolbar">
+      <button id="undoBtn" type="button" title="Undo (Cmd/Ctrl+Z)">Undo</button>
+      <button id="redoBtn" type="button" title="Redo (Shift+Cmd/Ctrl+Z)">Redo</button>
+      <span class="sep"></span>
+      <button id="newSeasonBtn" type="button">+ New season</button>
+      <button id="snapBtn" type="button" class="primary">Save snapshot</button>
+      <span class="sep"></span>
+      <button id="copyBtn" type="button">Copy list</button>
+      <button id="exportBtn" type="button">Export</button>
+      <label class="btn" for="importFile">Import</label>
+      <input id="importFile" class="hidden-file" type="file" accept="application/json,.json">
+      <span class="sep"></span>
+      <label class="toggle"><input id="loglineToggle" type="checkbox"> Show loglines</label>
+    </div>
+  </header>
+
+  <div class="board" id="board"></div>
+
+  <section class="snaps" aria-labelledby="snapsTitle">
+    <div class="snaps-head">
+      <h2 id="snapsTitle">Snapshots</h2>
+      <span class="snap-sum" id="snapCount"></span>
+    </div>
+    <form class="snapform" id="snapForm" hidden>
+      <label for="snapNote" class="g">What's the logic of this build?</label>
+      <textarea id="snapNote" placeholder="e.g. Chorus of Demons moved to 7 so the darkest episode sits just past the middle."></textarea>
+      <div class="row">
+        <button type="submit" class="primary">Save snapshot</button>
+        <button type="button" id="snapCancel">Cancel</button>
+      </div>
+    </form>
+    <ul class="snaplist" id="snapList"></ul>
+  </section>
+</div>
+
+<div class="status" id="status" role="status" hidden><span id="statusText"></span><button type="button" id="statusUndo" hidden>Undo</button></div>
+
+<script>
+/*! Sortable 1.15.2 - MIT | git://github.com/SortableJS/Sortable.git */
+!function(t,e){"object"==typeof exports&&"undefined"!=typeof module?module.exports=e():"function"==typeof define&&define.amd?define(e):(t=t||self).Sortable=e()}(this,function(){"use strict";function e(e,t){var n,o=Object.keys(e);return Object.getOwnPropertySymbols&&(n=Object.getOwnPropertySymbols(e),t&&(n=n.filter(function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable})),o.push.apply(o,n)),o}function I(o){for(var t=1;t<arguments.length;t++){var i=null!=arguments[t]?arguments[t]:{};t%2?e(Object(i),!0).forEach(function(t){var e,n;e=o,t=i[n=t],n in e?Object.defineProperty(e,n,{value:t,enumerable:!0,configurable:!0,writable:!0}):e[n]=t}):Object.getOwnPropertyDescriptors?Object.defineProperties(o,Object.getOwnPropertyDescriptors(i)):e(Object(i)).forEach(function(t){Object.defineProperty(o,t,Object.getOwnPropertyDescriptor(i,t))})}return o}function o(t){return(o="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(t){return typeof t}:function(t){return t&&"function"==typeof Symbol&&t.constructor===Symbol&&t!==Symbol.prototype?"symbol":typeof t})(t)}function a(){return(a=Object.assign||function(t){for(var e=1;e<arguments.length;e++){var n,o=arguments[e];for(n in o)Object.prototype.hasOwnProperty.call(o,n)&&(t[n]=o[n])}return t}).apply(this,arguments)}function i(t,e){if(null==t)return{};var n,o=function(t,e){if(null==t)return{};for(var n,o={},i=Object.keys(t),r=0;r<i.length;r++)n=i[r],0<=e.indexOf(n)||(o[n]=t[n]);return o}(t,e);if(Object.getOwnPropertySymbols)for(var i=Object.getOwnPropertySymbols(t),r=0;r<i.length;r++)n=i[r],0<=e.indexOf(n)||Object.prototype.propertyIsEnumerable.call(t,n)&&(o[n]=t[n]);return o}function r(t){return function(t){if(Array.isArray(t))return l(t)}(t)||function(t){if("undefined"!=typeof Symbol&&null!=t[Symbol.iterator]||null!=t["@@iterator"])return Array.from(t)}(t)||function(t,e){if(t){if("string"==typeof t)return l(t,e);var n=Object.prototype.toString.call(t).slice(8,-1);return"Map"===(n="Object"===n&&t.constructor?t.constructor.name:n)||"Set"===n?Array.from(t):"Arguments"===n||/^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)?l(t,e):void 0}}(t)||function(){throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.")}()}function l(t,e){(null==e||e>t.length)&&(e=t.length);for(var n=0,o=new Array(e);n<e;n++)o[n]=t[n];return o}function t(t){if("undefined"!=typeof window&&window.navigator)return!!navigator.userAgent.match(t)}var y=t(/(?:Trident.*rv[ :]?11\.|msie|iemobile|Windows Phone)/i),w=t(/Edge/i),s=t(/firefox/i),u=t(/safari/i)&&!t(/chrome/i)&&!t(/android/i),n=t(/iP(ad|od|hone)/i),c=t(/chrome/i)&&t(/android/i),d={capture:!1,passive:!1};function h(t,e,n){t.addEventListener(e,n,!y&&d)}function f(t,e,n){t.removeEventListener(e,n,!y&&d)}function p(t,e){if(e&&(">"===e[0]&&(e=e.substring(1)),t))try{if(t.matches)return t.matches(e);if(t.msMatchesSelector)return t.msMatchesSelector(e);if(t.webkitMatchesSelector)return t.webkitMatchesSelector(e)}catch(t){return}}function P(t,e,n,o){if(t){n=n||document;do{if(null!=e&&(">"!==e[0]||t.parentNode===n)&&p(t,e)||o&&t===n)return t}while(t!==n&&(t=(i=t).host&&i!==document&&i.host.nodeType?i.host:i.parentNode))}var i;return null}var g,m=/\s+/g;function k(t,e,n){var o;t&&e&&(t.classList?t.classList[n?"add":"remove"](e):(o=(" "+t.className+" ").replace(m," ").replace(" "+e+" "," "),t.className=(o+(n?" "+e:"")).replace(m," ")))}function R(t,e,n){var o=t&&t.style;if(o){if(void 0===n)return document.defaultView&&document.defaultView.getComputedStyle?n=document.defaultView.getComputedStyle(t,""):t.currentStyle&&(n=t.currentStyle),void 0===e?n:n[e];o[e=!(e in o||-1!==e.indexOf("webkit"))?"-webkit-"+e:e]=n+("string"==typeof n?"":"px")}}function v(t,e){var n="";if("string"==typeof t)n=t;else do{var o=R(t,"transform")}while(o&&"none"!==o&&(n=o+" "+n),!e&&(t=t.parentNode));var i=window.DOMMatrix||window.WebKitCSSMatrix||window.CSSMatrix||window.MSCSSMatrix;return i&&new i(n)}function b(t,e,n){if(t){var o=t.getElementsByTagName(e),i=0,r=o.length;if(n)for(;i<r;i++)n(o[i],i);return o}return[]}function O(){var t=document.scrollingElement;return t||document.documentElement}function X(t,e,n,o,i){if(t.getBoundingClientRect||t===window){var r,a,l,s,c,u,d=t!==window&&t.parentNode&&t!==O()?(a=(r=t.getBoundingClientRect()).top,l=r.left,s=r.bottom,c=r.right,u=r.height,r.width):(l=a=0,s=window.innerHeight,c=window.innerWidth,u=window.innerHeight,window.innerWidth);if((e||n)&&t!==window&&(i=i||t.parentNode,!y))do{if(i&&i.getBoundingClientRect&&("none"!==R(i,"transform")||n&&"static"!==R(i,"position"))){var h=i.getBoundingClientRect();a-=h.top+parseInt(R(i,"border-top-width")),l-=h.left+parseInt(R(i,"border-left-width")),s=a+r.height,c=l+r.width;break}}while(i=i.parentNode);return o&&t!==window&&(o=(e=v(i||t))&&e.a,t=e&&e.d,e&&(s=(a/=t)+(u/=t),c=(l/=o)+(d/=o))),{top:a,left:l,bottom:s,right:c,width:d,height:u}}}function Y(t,e,n){for(var o=M(t,!0),i=X(t)[e];o;){var r=X(o)[n];if(!("top"===n||"left"===n?r<=i:i<=r))return o;if(o===O())break;o=M(o,!1)}return!1}function B(t,e,n,o){for(var i=0,r=0,a=t.children;r<a.length;){if("none"!==a[r].style.display&&a[r]!==Ft.ghost&&(o||a[r]!==Ft.dragged)&&P(a[r],n.draggable,t,!1)){if(i===e)return a[r];i++}r++}return null}function F(t,e){for(var n=t.lastElementChild;n&&(n===Ft.ghost||"none"===R(n,"display")||e&&!p(n,e));)n=n.previousElementSibling;return n||null}function j(t,e){var n=0;if(!t||!t.parentNode)return-1;for(;t=t.previousElementSibling;)"TEMPLATE"===t.nodeName.toUpperCase()||t===Ft.clone||e&&!p(t,e)||n++;return n}function E(t){var e=0,n=0,o=O();if(t)do{var i=v(t),r=i.a,i=i.d}while(e+=t.scrollLeft*r,n+=t.scrollTop*i,t!==o&&(t=t.parentNode));return[e,n]}function M(t,e){if(!t||!t.getBoundingClientRect)return O();var n=t,o=!1;do{if(n.clientWidth<n.scrollWidth||n.clientHeight<n.scrollHeight){var i=R(n);if(n.clientWidth<n.scrollWidth&&("auto"==i.overflowX||"scroll"==i.overflowX)||n.clientHeight<n.scrollHeight&&("auto"==i.overflowY||"scroll"==i.overflowY)){if(!n.getBoundingClientRect||n===document.body)return O();if(o||e)return n;o=!0}}}while(n=n.parentNode);return O()}function D(t,e){return Math.round(t.top)===Math.round(e.top)&&Math.round(t.left)===Math.round(e.left)&&Math.round(t.height)===Math.round(e.height)&&Math.round(t.width)===Math.round(e.width)}function S(e,n){return function(){var t;g||(1===(t=arguments).length?e.call(this,t[0]):e.apply(this,t),g=setTimeout(function(){g=void 0},n))}}function H(t,e,n){t.scrollLeft+=e,t.scrollTop+=n}function _(t){var e=window.Polymer,n=window.jQuery||window.Zepto;return e&&e.dom?e.dom(t).cloneNode(!0):n?n(t).clone(!0)[0]:t.cloneNode(!0)}function C(t,e){R(t,"position","absolute"),R(t,"top",e.top),R(t,"left",e.left),R(t,"width",e.width),R(t,"height",e.height)}function T(t){R(t,"position",""),R(t,"top",""),R(t,"left",""),R(t,"width",""),R(t,"height","")}function L(n,o,i){var r={};return Array.from(n.children).forEach(function(t){var e;P(t,o.draggable,n,!1)&&!t.animated&&t!==i&&(e=X(t),r.left=Math.min(null!==(t=r.left)&&void 0!==t?t:1/0,e.left),r.top=Math.min(null!==(t=r.top)&&void 0!==t?t:1/0,e.top),r.right=Math.max(null!==(t=r.right)&&void 0!==t?t:-1/0,e.right),r.bottom=Math.max(null!==(t=r.bottom)&&void 0!==t?t:-1/0,e.bottom))}),r.width=r.right-r.left,r.height=r.bottom-r.top,r.x=r.left,r.y=r.top,r}var K="Sortable"+(new Date).getTime();function x(){var e,o=[];return{captureAnimationState:function(){o=[],this.options.animation&&[].slice.call(this.el.children).forEach(function(t){var e,n;"none"!==R(t,"display")&&t!==Ft.ghost&&(o.push({target:t,rect:X(t)}),e=I({},o[o.length-1].rect),!t.thisAnimationDuration||(n=v(t,!0))&&(e.top-=n.f,e.left-=n.e),t.fromRect=e)})},addAnimationState:function(t){o.push(t)},removeAnimationState:function(t){o.splice(function(t,e){for(var n in t)if(t.hasOwnProperty(n))for(var o in e)if(e.hasOwnProperty(o)&&e[o]===t[n][o])return Number(n);return-1}(o,{target:t}),1)},animateAll:function(t){var c=this;if(!this.options.animation)return clearTimeout(e),void("function"==typeof t&&t());var u=!1,d=0;o.forEach(function(t){var e=0,n=t.target,o=n.fromRect,i=X(n),r=n.prevFromRect,a=n.prevToRect,l=t.rect,s=v(n,!0);s&&(i.top-=s.f,i.left-=s.e),n.toRect=i,n.thisAnimationDuration&&D(r,i)&&!D(o,i)&&(l.top-i.top)/(l.left-i.left)==(o.top-i.top)/(o.left-i.left)&&(t=l,s=r,r=a,a=c.options,e=Math.sqrt(Math.pow(s.top-t.top,2)+Math.pow(s.left-t.left,2))/Math.sqrt(Math.pow(s.top-r.top,2)+Math.pow(s.left-r.left,2))*a.animation),D(i,o)||(n.prevFromRect=o,n.prevToRect=i,e=e||c.options.animation,c.animate(n,l,i,e)),e&&(u=!0,d=Math.max(d,e),clearTimeout(n.animationResetTimer),n.animationResetTimer=setTimeout(function(){n.animationTime=0,n.prevFromRect=null,n.fromRect=null,n.prevToRect=null,n.thisAnimationDuration=null},e),n.thisAnimationDuration=e)}),clearTimeout(e),u?e=setTimeout(function(){"function"==typeof t&&t()},d):"function"==typeof t&&t(),o=[]},animate:function(t,e,n,o){var i,r;o&&(R(t,"transition",""),R(t,"transform",""),i=(r=v(this.el))&&r.a,r=r&&r.d,i=(e.left-n.left)/(i||1),r=(e.top-n.top)/(r||1),t.animatingX=!!i,t.animatingY=!!r,R(t,"transform","translate3d("+i+"px,"+r+"px,0)"),this.forRepaintDummy=t.offsetWidth,R(t,"transition","transform "+o+"ms"+(this.options.easing?" "+this.options.easing:"")),R(t,"transform","translate3d(0,0,0)"),"number"==typeof t.animated&&clearTimeout(t.animated),t.animated=setTimeout(function(){R(t,"transition",""),R(t,"transform",""),t.animated=!1,t.animatingX=!1,t.animatingY=!1},o))}}}var A=[],N={initializeByDefault:!0},W={mount:function(e){for(var t in N)!N.hasOwnProperty(t)||t in e||(e[t]=N[t]);A.forEach(function(t){if(t.pluginName===e.pluginName)throw"Sortable: Cannot mount plugin ".concat(e.pluginName," more than once")}),A.push(e)},pluginEvent:function(e,n,o){var t=this;this.eventCanceled=!1,o.cancel=function(){t.eventCanceled=!0};var i=e+"Global";A.forEach(function(t){n[t.pluginName]&&(n[t.pluginName][i]&&n[t.pluginName][i](I({sortable:n},o)),n.options[t.pluginName]&&n[t.pluginName][e]&&n[t.pluginName][e](I({sortable:n},o)))})},initializePlugins:function(n,o,i,t){for(var e in A.forEach(function(t){var e=t.pluginName;(n.options[e]||t.initializeByDefault)&&((t=new t(n,o,n.options)).sortable=n,t.options=n.options,n[e]=t,a(i,t.defaults))}),n.options){var r;n.options.hasOwnProperty(e)&&(void 0!==(r=this.modifyOption(n,e,n.options[e]))&&(n.options[e]=r))}},getEventProperties:function(e,n){var o={};return A.forEach(function(t){"function"==typeof t.eventProperties&&a(o,t.eventProperties.call(n[t.pluginName],e))}),o},modifyOption:function(e,n,o){var i;return A.forEach(function(t){e[t.pluginName]&&t.optionListeners&&"function"==typeof t.optionListeners[n]&&(i=t.optionListeners[n].call(e[t.pluginName],o))}),i}};function z(t){var e=t.sortable,n=t.rootEl,o=t.name,i=t.targetEl,r=t.cloneEl,a=t.toEl,l=t.fromEl,s=t.oldIndex,c=t.newIndex,u=t.oldDraggableIndex,d=t.newDraggableIndex,h=t.originalEvent,f=t.putSortable,p=t.extraEventProperties;if(e=e||n&&n[K]){var g,m=e.options,t="on"+o.charAt(0).toUpperCase()+o.substr(1);!window.CustomEvent||y||w?(g=document.createEvent("Event")).initEvent(o,!0,!0):g=new CustomEvent(o,{bubbles:!0,cancelable:!0}),g.to=a||n,g.from=l||n,g.item=i||n,g.clone=r,g.oldIndex=s,g.newIndex=c,g.oldDraggableIndex=u,g.newDraggableIndex=d,g.originalEvent=h,g.pullMode=f?f.lastPutMode:void 0;var v,b=I(I({},p),W.getEventProperties(o,e));for(v in b)g[v]=b[v];n&&n.dispatchEvent(g),m[t]&&m[t].call(e,g)}}function G(t,e){var n=(o=2<arguments.length&&void 0!==arguments[2]?arguments[2]:{}).evt,o=i(o,U);W.pluginEvent.bind(Ft)(t,e,I({dragEl:V,parentEl:Z,ghostEl:$,rootEl:Q,nextEl:J,lastDownEl:tt,cloneEl:et,cloneHidden:nt,dragStarted:gt,putSortable:st,activeSortable:Ft.active,originalEvent:n,oldIndex:ot,oldDraggableIndex:rt,newIndex:it,newDraggableIndex:at,hideGhostForTarget:Rt,unhideGhostForTarget:Xt,cloneNowHidden:function(){nt=!0},cloneNowShown:function(){nt=!1},dispatchSortableEvent:function(t){q({sortable:e,name:t,originalEvent:n})}},o))}var U=["evt"];function q(t){z(I({putSortable:st,cloneEl:et,targetEl:V,rootEl:Q,oldIndex:ot,oldDraggableIndex:rt,newIndex:it,newDraggableIndex:at},t))}var V,Z,$,Q,J,tt,et,nt,ot,it,rt,at,lt,st,ct,ut,dt,ht,ft,pt,gt,mt,vt,bt,yt,wt=!1,Et=!1,Dt=[],St=!1,_t=!1,Ct=[],Tt=!1,xt=[],Ot="undefined"!=typeof document,Mt=n,At=w||y?"cssFloat":"float",Nt=Ot&&!c&&!n&&"draggable"in document.createElement("div"),It=function(){if(Ot){if(y)return!1;var t=document.createElement("x");return t.style.cssText="pointer-events:auto","auto"===t.style.pointerEvents}}(),Pt=function(t,e){var n=R(t),o=parseInt(n.width)-parseInt(n.paddingLeft)-parseInt(n.paddingRight)-parseInt(n.borderLeftWidth)-parseInt(n.borderRightWidth),i=B(t,0,e),r=B(t,1,e),a=i&&R(i),l=r&&R(r),s=a&&parseInt(a.marginLeft)+parseInt(a.marginRight)+X(i).width,t=l&&parseInt(l.marginLeft)+parseInt(l.marginRight)+X(r).width;if("flex"===n.display)return"column"===n.flexDirection||"column-reverse"===n.flexDirection?"vertical":"horizontal";if("grid"===n.display)return n.gridTemplateColumns.split(" ").length<=1?"vertical":"horizontal";if(i&&a.float&&"none"!==a.float){e="left"===a.float?"left":"right";return!r||"both"!==l.clear&&l.clear!==e?"horizontal":"vertical"}return i&&("block"===a.display||"flex"===a.display||"table"===a.display||"grid"===a.display||o<=s&&"none"===n[At]||r&&"none"===n[At]&&o<s+t)?"vertical":"horizontal"},kt=function(t){function l(r,a){return function(t,e,n,o){var i=t.options.group.name&&e.options.group.name&&t.options.group.name===e.options.group.name;if(null==r&&(a||i))return!0;if(null==r||!1===r)return!1;if(a&&"clone"===r)return r;if("function"==typeof r)return l(r(t,e,n,o),a)(t,e,n,o);e=(a?t:e).options.group.name;return!0===r||"string"==typeof r&&r===e||r.join&&-1<r.indexOf(e)}}var e={},n=t.group;n&&"object"==o(n)||(n={name:n}),e.name=n.name,e.checkPull=l(n.pull,!0),e.checkPut=l(n.put),e.revertClone=n.revertClone,t.group=e},Rt=function(){!It&&$&&R($,"display","none")},Xt=function(){!It&&$&&R($,"display","")};Ot&&!c&&document.addEventListener("click",function(t){if(Et)return t.preventDefault(),t.stopPropagation&&t.stopPropagation(),t.stopImmediatePropagation&&t.stopImmediatePropagation(),Et=!1},!0);function Yt(t){if(V){t=t.touches?t.touches[0]:t;var e=(i=t.clientX,r=t.clientY,Dt.some(function(t){var e=t[K].options.emptyInsertThreshold;if(e&&!F(t)){var n=X(t),o=i>=n.left-e&&i<=n.right+e,e=r>=n.top-e&&r<=n.bottom+e;return o&&e?a=t:void 0}}),a);if(e){var n,o={};for(n in t)t.hasOwnProperty(n)&&(o[n]=t[n]);o.target=o.rootEl=e,o.preventDefault=void 0,o.stopPropagation=void 0,e[K]._onDragOver(o)}}var i,r,a}function Bt(t){V&&V.parentNode[K]._isOutsideThisEl(t.target)}function Ft(t,e){if(!t||!t.nodeType||1!==t.nodeType)throw"Sortable: `el` must be an HTMLElement, not ".concat({}.toString.call(t));this.el=t,this.options=e=a({},e),t[K]=this;var n,o,i={group:null,sort:!0,disabled:!1,store:null,handle:null,draggable:/^[uo]l$/i.test(t.nodeName)?">li":">*",swapThreshold:1,invertSwap:!1,invertedSwapThreshold:null,removeCloneOnHide:!0,direction:function(){return Pt(t,this.options)},ghostClass:"sortable-ghost",chosenClass:"sortable-chosen",dragClass:"sortable-drag",ignore:"a, img",filter:null,preventOnFilter:!0,animation:0,easing:null,setData:function(t,e){t.setData("Text",e.textContent)},dropBubble:!1,dragoverBubble:!1,dataIdAttr:"data-id",delay:0,delayOnTouchOnly:!1,touchStartThreshold:(Number.parseInt?Number:window).parseInt(window.devicePixelRatio,10)||1,forceFallback:!1,fallbackClass:"sortable-fallback",fallbackOnBody:!1,fallbackTolerance:0,fallbackOffset:{x:0,y:0},supportPointer:!1!==Ft.supportPointer&&"PointerEvent"in window&&!u,emptyInsertThreshold:5};for(n in W.initializePlugins(this,t,i),i)n in e||(e[n]=i[n]);for(o in kt(e),this)"_"===o.charAt(0)&&"function"==typeof this[o]&&(this[o]=this[o].bind(this));this.nativeDraggable=!e.forceFallback&&Nt,this.nativeDraggable&&(this.options.touchStartThreshold=1),e.supportPointer?h(t,"pointerdown",this._onTapStart):(h(t,"mousedown",this._onTapStart),h(t,"touchstart",this._onTapStart)),this.nativeDraggable&&(h(t,"dragover",this),h(t,"dragenter",this)),Dt.push(this.el),e.store&&e.store.get&&this.sort(e.store.get(this)||[]),a(this,x())}function jt(t,e,n,o,i,r,a,l){var s,c,u=t[K],d=u.options.onMove;return!window.CustomEvent||y||w?(s=document.createEvent("Event")).initEvent("move",!0,!0):s=new CustomEvent("move",{bubbles:!0,cancelable:!0}),s.to=e,s.from=t,s.dragged=n,s.draggedRect=o,s.related=i||e,s.relatedRect=r||X(e),s.willInsertAfter=l,s.originalEvent=a,t.dispatchEvent(s),c=d?d.call(u,s,a):c}function Ht(t){t.draggable=!1}function Lt(){Tt=!1}function Kt(t){return setTimeout(t,0)}function Wt(t){return clearTimeout(t)}Ft.prototype={constructor:Ft,_isOutsideThisEl:function(t){this.el.contains(t)||t===this.el||(mt=null)},_getDirection:function(t,e){return"function"==typeof this.options.direction?this.options.direction.call(this,t,e,V):this.options.direction},_onTapStart:function(e){if(e.cancelable){var n=this,o=this.el,t=this.options,i=t.preventOnFilter,r=e.type,a=e.touches&&e.touches[0]||e.pointerType&&"touch"===e.pointerType&&e,l=(a||e).target,s=e.target.shadowRoot&&(e.path&&e.path[0]||e.composedPath&&e.composedPath()[0])||l,c=t.filter;if(!function(t){xt.length=0;var e=t.getElementsByTagName("input"),n=e.length;for(;n--;){var o=e[n];o.checked&&xt.push(o)}}(o),!V&&!(/mousedown|pointerdown/.test(r)&&0!==e.button||t.disabled)&&!s.isContentEditable&&(this.nativeDraggable||!u||!l||"SELECT"!==l.tagName.toUpperCase())&&!((l=P(l,t.draggable,o,!1))&&l.animated||tt===l)){if(ot=j(l),rt=j(l,t.draggable),"function"==typeof c){if(c.call(this,e,l,this))return q({sortable:n,rootEl:s,name:"filter",targetEl:l,toEl:o,fromEl:o}),G("filter",n,{evt:e}),void(i&&e.cancelable&&e.preventDefault())}else if(c=c&&c.split(",").some(function(t){if(t=P(s,t.trim(),o,!1))return q({sortable:n,rootEl:t,name:"filter",targetEl:l,fromEl:o,toEl:o}),G("filter",n,{evt:e}),!0}))return void(i&&e.cancelable&&e.preventDefault());t.handle&&!P(s,t.handle,o,!1)||this._prepareDragStart(e,a,l)}}},_prepareDragStart:function(t,e,n){var o,i=this,r=i.el,a=i.options,l=r.ownerDocument;n&&!V&&n.parentNode===r&&(o=X(n),Q=r,Z=(V=n).parentNode,J=V.nextSibling,tt=n,lt=a.group,ct={target:Ft.dragged=V,clientX:(e||t).clientX,clientY:(e||t).clientY},ft=ct.clientX-o.left,pt=ct.clientY-o.top,this._lastX=(e||t).clientX,this._lastY=(e||t).clientY,V.style["will-change"]="all",o=function(){G("delayEnded",i,{evt:t}),Ft.eventCanceled?i._onDrop():(i._disableDelayedDragEvents(),!s&&i.nativeDraggable&&(V.draggable=!0),i._triggerDragStart(t,e),q({sortable:i,name:"choose",originalEvent:t}),k(V,a.chosenClass,!0))},a.ignore.split(",").forEach(function(t){b(V,t.trim(),Ht)}),h(l,"dragover",Yt),h(l,"mousemove",Yt),h(l,"touchmove",Yt),h(l,"mouseup",i._onDrop),h(l,"touchend",i._onDrop),h(l,"touchcancel",i._onDrop),s&&this.nativeDraggable&&(this.options.touchStartThreshold=4,V.draggable=!0),G("delayStart",this,{evt:t}),!a.delay||a.delayOnTouchOnly&&!e||this.nativeDraggable&&(w||y)?o():Ft.eventCanceled?this._onDrop():(h(l,"mouseup",i._disableDelayedDrag),h(l,"touchend",i._disableDelayedDrag),h(l,"touchcancel",i._disableDelayedDrag),h(l,"mousemove",i._delayedDragTouchMoveHandler),h(l,"touchmove",i._delayedDragTouchMoveHandler),a.supportPointer&&h(l,"pointermove",i._delayedDragTouchMoveHandler),i._dragStartTimer=setTimeout(o,a.delay)))},_delayedDragTouchMoveHandler:function(t){t=t.touches?t.touches[0]:t;Math.max(Math.abs(t.clientX-this._lastX),Math.abs(t.clientY-this._lastY))>=Math.floor(this.options.touchStartThreshold/(this.nativeDraggable&&window.devicePixelRatio||1))&&this._disableDelayedDrag()},_disableDelayedDrag:function(){V&&Ht(V),clearTimeout(this._dragStartTimer),this._disableDelayedDragEvents()},_disableDelayedDragEvents:function(){var t=this.el.ownerDocument;f(t,"mouseup",this._disableDelayedDrag),f(t,"touchend",this._disableDelayedDrag),f(t,"touchcancel",this._disableDelayedDrag),f(t,"mousemove",this._delayedDragTouchMoveHandler),f(t,"touchmove",this._delayedDragTouchMoveHandler),f(t,"pointermove",this._delayedDragTouchMoveHandler)},_triggerDragStart:function(t,e){e=e||"touch"==t.pointerType&&t,!this.nativeDraggable||e?this.options.supportPointer?h(document,"pointermove",this._onTouchMove):h(document,e?"touchmove":"mousemove",this._onTouchMove):(h(V,"dragend",this),h(Q,"dragstart",this._onDragStart));try{document.selection?Kt(function(){document.selection.empty()}):window.getSelection().removeAllRanges()}catch(t){}},_dragStarted:function(t,e){var n;wt=!1,Q&&V?(G("dragStarted",this,{evt:e}),this.nativeDraggable&&h(document,"dragover",Bt),n=this.options,t||k(V,n.dragClass,!1),k(V,n.ghostClass,!0),Ft.active=this,t&&this._appendGhost(),q({sortable:this,name:"start",originalEvent:e})):this._nulling()},_emulateDragOver:function(){if(ut){this._lastX=ut.clientX,this._lastY=ut.clientY,Rt();for(var t=document.elementFromPoint(ut.clientX,ut.clientY),e=t;t&&t.shadowRoot&&(t=t.shadowRoot.elementFromPoint(ut.clientX,ut.clientY))!==e;)e=t;if(V.parentNode[K]._isOutsideThisEl(t),e)do{if(e[K])if(e[K]._onDragOver({clientX:ut.clientX,clientY:ut.clientY,target:t,rootEl:e})&&!this.options.dragoverBubble)break}while(e=(t=e).parentNode);Xt()}},_onTouchMove:function(t){if(ct){var e=this.options,n=e.fallbackTolerance,o=e.fallbackOffset,i=t.touches?t.touches[0]:t,r=$&&v($,!0),a=$&&r&&r.a,l=$&&r&&r.d,e=Mt&&yt&&E(yt),a=(i.clientX-ct.clientX+o.x)/(a||1)+(e?e[0]-Ct[0]:0)/(a||1),l=(i.clientY-ct.clientY+o.y)/(l||1)+(e?e[1]-Ct[1]:0)/(l||1);if(!Ft.active&&!wt){if(n&&Math.max(Math.abs(i.clientX-this._lastX),Math.abs(i.clientY-this._lastY))<n)return;this._onDragStart(t,!0)}$&&(r?(r.e+=a-(dt||0),r.f+=l-(ht||0)):r={a:1,b:0,c:0,d:1,e:a,f:l},r="matrix(".concat(r.a,",").concat(r.b,",").concat(r.c,",").concat(r.d,",").concat(r.e,",").concat(r.f,")"),R($,"webkitTransform",r),R($,"mozTransform",r),R($,"msTransform",r),R($,"transform",r),dt=a,ht=l,ut=i),t.cancelable&&t.preventDefault()}},_appendGhost:function(){if(!$){var t=this.options.fallbackOnBody?document.body:Q,e=X(V,!0,Mt,!0,t),n=this.options;if(Mt){for(yt=t;"static"===R(yt,"position")&&"none"===R(yt,"transform")&&yt!==document;)yt=yt.parentNode;yt!==document.body&&yt!==document.documentElement?(yt===document&&(yt=O()),e.top+=yt.scrollTop,e.left+=yt.scrollLeft):yt=O(),Ct=E(yt)}k($=V.cloneNode(!0),n.ghostClass,!1),k($,n.fallbackClass,!0),k($,n.dragClass,!0),R($,"transition",""),R($,"transform",""),R($,"box-sizing","border-box"),R($,"margin",0),R($,"top",e.top),R($,"left",e.left),R($,"width",e.width),R($,"height",e.height),R($,"opacity","0.8"),R($,"position",Mt?"absolute":"fixed"),R($,"zIndex","100000"),R($,"pointerEvents","none"),Ft.ghost=$,t.appendChild($),R($,"transform-origin",ft/parseInt($.style.width)*100+"% "+pt/parseInt($.style.height)*100+"%")}},_onDragStart:function(t,e){var n=this,o=t.dataTransfer,i=n.options;G("dragStart",this,{evt:t}),Ft.eventCanceled?this._onDrop():(G("setupClone",this),Ft.eventCanceled||((et=_(V)).removeAttribute("id"),et.draggable=!1,et.style["will-change"]="",this._hideClone(),k(et,this.options.chosenClass,!1),Ft.clone=et),n.cloneId=Kt(function(){G("clone",n),Ft.eventCanceled||(n.options.removeCloneOnHide||Q.insertBefore(et,V),n._hideClone(),q({sortable:n,name:"clone"}))}),e||k(V,i.dragClass,!0),e?(Et=!0,n._loopId=setInterval(n._emulateDragOver,50)):(f(document,"mouseup",n._onDrop),f(document,"touchend",n._onDrop),f(document,"touchcancel",n._onDrop),o&&(o.effectAllowed="move",i.setData&&i.setData.call(n,o,V)),h(document,"drop",n),R(V,"transform","translateZ(0)")),wt=!0,n._dragStartId=Kt(n._dragStarted.bind(n,e,t)),h(document,"selectstart",n),gt=!0,u&&R(document.body,"user-select","none"))},_onDragOver:function(n){var o,i,r,t,e,a=this.el,l=n.target,s=this.options,c=s.group,u=Ft.active,d=lt===c,h=s.sort,f=st||u,p=this,g=!1;if(!Tt){if(void 0!==n.preventDefault&&n.cancelable&&n.preventDefault(),l=P(l,s.draggable,a,!0),O("dragOver"),Ft.eventCanceled)return g;if(V.contains(n.target)||l.animated&&l.animatingX&&l.animatingY||p._ignoreWhileAnimating===l)return A(!1);if(Et=!1,u&&!s.disabled&&(d?h||(i=Z!==Q):st===this||(this.lastPutMode=lt.checkPull(this,u,V,n))&&c.checkPut(this,u,V,n))){if(r="vertical"===this._getDirection(n,l),o=X(V),O("dragOverValid"),Ft.eventCanceled)return g;if(i)return Z=Q,M(),this._hideClone(),O("revert"),Ft.eventCanceled||(J?Q.insertBefore(V,J):Q.appendChild(V)),A(!0);var m=F(a,s.draggable);if(m&&(S=n,c=r,x=X(F((D=this).el,D.options.draggable)),D=L(D.el,D.options,$),!(c?S.clientX>D.right+10||S.clientY>x.bottom&&S.clientX>x.left:S.clientY>D.bottom+10||S.clientX>x.right&&S.clientY>x.top)||m.animated)){if(m&&(t=n,e=r,C=X(B((_=this).el,0,_.options,!0)),_=L(_.el,_.options,$),e?t.clientX<_.left-10||t.clientY<C.top&&t.clientX<C.right:t.clientY<_.top-10||t.clientY<C.bottom&&t.clientX<C.left)){var v=B(a,0,s,!0);if(v===V)return A(!1);if(E=X(l=v),!1!==jt(Q,a,V,o,l,E,n,!1))return M(),a.insertBefore(V,v),Z=a,N(),A(!0)}else if(l.parentNode===a){var b,y,w,E=X(l),D=V.parentNode!==a,S=(S=V.animated&&V.toRect||o,x=l.animated&&l.toRect||E,_=(e=r)?S.left:S.top,t=e?S.right:S.bottom,C=e?S.width:S.height,v=e?x.left:x.top,S=e?x.right:x.bottom,x=e?x.width:x.height,!(_===v||t===S||_+C/2===v+x/2)),_=r?"top":"left",C=Y(l,"top","top")||Y(V,"top","top"),v=C?C.scrollTop:void 0;if(mt!==l&&(y=E[_],St=!1,_t=!S&&s.invertSwap||D),0!==(b=function(t,e,n,o,i,r,a,l){var s=o?t.clientY:t.clientX,c=o?n.height:n.width,t=o?n.top:n.left,o=o?n.bottom:n.right,n=!1;if(!a)if(l&&bt<c*i){if(St=!St&&(1===vt?t+c*r/2<s:s<o-c*r/2)?!0:St)n=!0;else if(1===vt?s<t+bt:o-bt<s)return-vt}else if(t+c*(1-i)/2<s&&s<o-c*(1-i)/2)return function(t){return j(V)<j(t)?1:-1}(e);if((n=n||a)&&(s<t+c*r/2||o-c*r/2<s))return t+c/2<s?1:-1;return 0}(n,l,E,r,S?1:s.swapThreshold,null==s.invertedSwapThreshold?s.swapThreshold:s.invertedSwapThreshold,_t,mt===l)))for(var T=j(V);(w=Z.children[T-=b])&&("none"===R(w,"display")||w===$););if(0===b||w===l)return A(!1);vt=b;var x=(mt=l).nextElementSibling,D=!1,S=jt(Q,a,V,o,l,E,n,D=1===b);if(!1!==S)return 1!==S&&-1!==S||(D=1===S),Tt=!0,setTimeout(Lt,30),M(),D&&!x?a.appendChild(V):l.parentNode.insertBefore(V,D?x:l),C&&H(C,0,v-C.scrollTop),Z=V.parentNode,void 0===y||_t||(bt=Math.abs(y-X(l)[_])),N(),A(!0)}}else{if(m===V)return A(!1);if((l=m&&a===n.target?m:l)&&(E=X(l)),!1!==jt(Q,a,V,o,l,E,n,!!l))return M(),m&&m.nextSibling?a.insertBefore(V,m.nextSibling):a.appendChild(V),Z=a,N(),A(!0)}if(a.contains(V))return A(!1)}return!1}function O(t,e){G(t,p,I({evt:n,isOwner:d,axis:r?"vertical":"horizontal",revert:i,dragRect:o,targetRect:E,canSort:h,fromSortable:f,target:l,completed:A,onMove:function(t,e){return jt(Q,a,V,o,t,X(t),n,e)},changed:N},e))}function M(){O("dragOverAnimationCapture"),p.captureAnimationState(),p!==f&&f.captureAnimationState()}function A(t){return O("dragOverCompleted",{insertion:t}),t&&(d?u._hideClone():u._showClone(p),p!==f&&(k(V,(st||u).options.ghostClass,!1),k(V,s.ghostClass,!0)),st!==p&&p!==Ft.active?st=p:p===Ft.active&&st&&(st=null),f===p&&(p._ignoreWhileAnimating=l),p.animateAll(function(){O("dragOverAnimationComplete"),p._ignoreWhileAnimating=null}),p!==f&&(f.animateAll(),f._ignoreWhileAnimating=null)),(l===V&&!V.animated||l===a&&!l.animated)&&(mt=null),s.dragoverBubble||n.rootEl||l===document||(V.parentNode[K]._isOutsideThisEl(n.target),t||Yt(n)),!s.dragoverBubble&&n.stopPropagation&&n.stopPropagation(),g=!0}function N(){it=j(V),at=j(V,s.draggable),q({sortable:p,name:"change",toEl:a,newIndex:it,newDraggableIndex:at,originalEvent:n})}},_ignoreWhileAnimating:null,_offMoveEvents:function(){f(document,"mousemove",this._onTouchMove),f(document,"touchmove",this._onTouchMove),f(document,"pointermove",this._onTouchMove),f(document,"dragover",Yt),f(document,"mousemove",Yt),f(document,"touchmove",Yt)},_offUpEvents:function(){var t=this.el.ownerDocument;f(t,"mouseup",this._onDrop),f(t,"touchend",this._onDrop),f(t,"pointerup",this._onDrop),f(t,"touchcancel",this._onDrop),f(document,"selectstart",this)},_onDrop:function(t){var e=this.el,n=this.options;it=j(V),at=j(V,n.draggable),G("drop",this,{evt:t}),Z=V&&V.parentNode,it=j(V),at=j(V,n.draggable),Ft.eventCanceled||(St=_t=wt=!1,clearInterval(this._loopId),clearTimeout(this._dragStartTimer),Wt(this.cloneId),Wt(this._dragStartId),this.nativeDraggable&&(f(document,"drop",this),f(e,"dragstart",this._onDragStart)),this._offMoveEvents(),this._offUpEvents(),u&&R(document.body,"user-select",""),R(V,"transform",""),t&&(gt&&(t.cancelable&&t.preventDefault(),n.dropBubble||t.stopPropagation()),$&&$.parentNode&&$.parentNode.removeChild($),(Q===Z||st&&"clone"!==st.lastPutMode)&&et&&et.parentNode&&et.parentNode.removeChild(et),V&&(this.nativeDraggable&&f(V,"dragend",this),Ht(V),V.style["will-change"]="",gt&&!wt&&k(V,(st||this).options.ghostClass,!1),k(V,this.options.chosenClass,!1),q({sortable:this,name:"unchoose",toEl:Z,newIndex:null,newDraggableIndex:null,originalEvent:t}),Q!==Z?(0<=it&&(q({rootEl:Z,name:"add",toEl:Z,fromEl:Q,originalEvent:t}),q({sortable:this,name:"remove",toEl:Z,originalEvent:t}),q({rootEl:Z,name:"sort",toEl:Z,fromEl:Q,originalEvent:t}),q({sortable:this,name:"sort",toEl:Z,originalEvent:t})),st&&st.save()):it!==ot&&0<=it&&(q({sortable:this,name:"update",toEl:Z,originalEvent:t}),q({sortable:this,name:"sort",toEl:Z,originalEvent:t})),Ft.active&&(null!=it&&-1!==it||(it=ot,at=rt),q({sortable:this,name:"end",toEl:Z,originalEvent:t}),this.save())))),this._nulling()},_nulling:function(){G("nulling",this),Q=V=Z=$=J=et=tt=nt=ct=ut=gt=it=at=ot=rt=mt=vt=st=lt=Ft.dragged=Ft.ghost=Ft.clone=Ft.active=null,xt.forEach(function(t){t.checked=!0}),xt.length=dt=ht=0},handleEvent:function(t){switch(t.type){case"drop":case"dragend":this._onDrop(t);break;case"dragenter":case"dragover":V&&(this._onDragOver(t),function(t){t.dataTransfer&&(t.dataTransfer.dropEffect="move");t.cancelable&&t.preventDefault()}(t));break;case"selectstart":t.preventDefault()}},toArray:function(){for(var t,e=[],n=this.el.children,o=0,i=n.length,r=this.options;o<i;o++)P(t=n[o],r.draggable,this.el,!1)&&e.push(t.getAttribute(r.dataIdAttr)||function(t){var e=t.tagName+t.className+t.src+t.href+t.textContent,n=e.length,o=0;for(;n--;)o+=e.charCodeAt(n);return o.toString(36)}(t));return e},sort:function(t,e){var n={},o=this.el;this.toArray().forEach(function(t,e){e=o.children[e];P(e,this.options.draggable,o,!1)&&(n[t]=e)},this),e&&this.captureAnimationState(),t.forEach(function(t){n[t]&&(o.removeChild(n[t]),o.appendChild(n[t]))}),e&&this.animateAll()},save:function(){var t=this.options.store;t&&t.set&&t.set(this)},closest:function(t,e){return P(t,e||this.options.draggable,this.el,!1)},option:function(t,e){var n=this.options;if(void 0===e)return n[t];var o=W.modifyOption(this,t,e);n[t]=void 0!==o?o:e,"group"===t&&kt(n)},destroy:function(){G("destroy",this);var t=this.el;t[K]=null,f(t,"mousedown",this._onTapStart),f(t,"touchstart",this._onTapStart),f(t,"pointerdown",this._onTapStart),this.nativeDraggable&&(f(t,"dragover",this),f(t,"dragenter",this)),Array.prototype.forEach.call(t.querySelectorAll("[draggable]"),function(t){t.removeAttribute("draggable")}),this._onDrop(),this._disableDelayedDragEvents(),Dt.splice(Dt.indexOf(this.el),1),this.el=t=null},_hideClone:function(){nt||(G("hideClone",this),Ft.eventCanceled||(R(et,"display","none"),this.options.removeCloneOnHide&&et.parentNode&&et.parentNode.removeChild(et),nt=!0))},_showClone:function(t){"clone"===t.lastPutMode?nt&&(G("showClone",this),Ft.eventCanceled||(V.parentNode!=Q||this.options.group.revertClone?J?Q.insertBefore(et,J):Q.appendChild(et):Q.insertBefore(et,V),this.options.group.revertClone&&this.animate(V,et),R(et,"display",""),nt=!1)):this._hideClone()}},Ot&&h(document,"touchmove",function(t){(Ft.active||wt)&&t.cancelable&&t.preventDefault()}),Ft.utils={on:h,off:f,css:R,find:b,is:function(t,e){return!!P(t,e,t,!1)},extend:function(t,e){if(t&&e)for(var n in e)e.hasOwnProperty(n)&&(t[n]=e[n]);return t},throttle:S,closest:P,toggleClass:k,clone:_,index:j,nextTick:Kt,cancelNextTick:Wt,detectDirection:Pt,getChild:B},Ft.get=function(t){return t[K]},Ft.mount=function(){for(var t=arguments.length,e=new Array(t),n=0;n<t;n++)e[n]=arguments[n];(e=e[0].constructor===Array?e[0]:e).forEach(function(t){if(!t.prototype||!t.prototype.constructor)throw"Sortable: Mounted plugin must be a constructor function, not ".concat({}.toString.call(t));t.utils&&(Ft.utils=I(I({},Ft.utils),t.utils)),W.mount(t)})},Ft.create=function(t,e){return new Ft(t,e)};var zt,Gt,Ut,qt,Vt,Zt,$t=[],Qt=!(Ft.version="1.15.2");function Jt(){$t.forEach(function(t){clearInterval(t.pid)}),$t=[]}function te(){clearInterval(Zt)}var ee,ne=S(function(n,t,e,o){if(t.scroll){var i,r=(n.touches?n.touches[0]:n).clientX,a=(n.touches?n.touches[0]:n).clientY,l=t.scrollSensitivity,s=t.scrollSpeed,c=O(),u=!1;Gt!==e&&(Gt=e,Jt(),zt=t.scroll,i=t.scrollFn,!0===zt&&(zt=M(e,!0)));var d=0,h=zt;do{var f=h,p=X(f),g=p.top,m=p.bottom,v=p.left,b=p.right,y=p.width,w=p.height,E=void 0,D=void 0,S=f.scrollWidth,_=f.scrollHeight,C=R(f),T=f.scrollLeft,p=f.scrollTop,D=f===c?(E=y<S&&("auto"===C.overflowX||"scroll"===C.overflowX||"visible"===C.overflowX),w<_&&("auto"===C.overflowY||"scroll"===C.overflowY||"visible"===C.overflowY)):(E=y<S&&("auto"===C.overflowX||"scroll"===C.overflowX),w<_&&("auto"===C.overflowY||"scroll"===C.overflowY)),T=E&&(Math.abs(b-r)<=l&&T+y<S)-(Math.abs(v-r)<=l&&!!T),p=D&&(Math.abs(m-a)<=l&&p+w<_)-(Math.abs(g-a)<=l&&!!p);if(!$t[d])for(var x=0;x<=d;x++)$t[x]||($t[x]={});$t[d].vx==T&&$t[d].vy==p&&$t[d].el===f||($t[d].el=f,$t[d].vx=T,$t[d].vy=p,clearInterval($t[d].pid),0==T&&0==p||(u=!0,$t[d].pid=setInterval(function(){o&&0===this.layer&&Ft.active._onTouchMove(Vt);var t=$t[this.layer].vy?$t[this.layer].vy*s:0,e=$t[this.layer].vx?$t[this.layer].vx*s:0;"function"==typeof i&&"continue"!==i.call(Ft.dragged.parentNode[K],e,t,n,Vt,$t[this.layer].el)||H($t[this.layer].el,e,t)}.bind({layer:d}),24))),d++}while(t.bubbleScroll&&h!==c&&(h=M(h,!1)));Qt=u}},30),c=function(t){var e=t.originalEvent,n=t.putSortable,o=t.dragEl,i=t.activeSortable,r=t.dispatchSortableEvent,a=t.hideGhostForTarget,t=t.unhideGhostForTarget;e&&(i=n||i,a(),e=e.changedTouches&&e.changedTouches.length?e.changedTouches[0]:e,e=document.elementFromPoint(e.clientX,e.clientY),t(),i&&!i.el.contains(e)&&(r("spill"),this.onSpill({dragEl:o,putSortable:n})))};function oe(){}function ie(){}oe.prototype={startIndex:null,dragStart:function(t){t=t.oldDraggableIndex;this.startIndex=t},onSpill:function(t){var e=t.dragEl,n=t.putSortable;this.sortable.captureAnimationState(),n&&n.captureAnimationState();t=B(this.sortable.el,this.startIndex,this.options);t?this.sortable.el.insertBefore(e,t):this.sortable.el.appendChild(e),this.sortable.animateAll(),n&&n.animateAll()},drop:c},a(oe,{pluginName:"revertOnSpill"}),ie.prototype={onSpill:function(t){var e=t.dragEl,t=t.putSortable||this.sortable;t.captureAnimationState(),e.parentNode&&e.parentNode.removeChild(e),t.animateAll()},drop:c},a(ie,{pluginName:"removeOnSpill"});var re,ae,le,se,ce,ue=[],de=[],he=!1,fe=!1,pe=!1;function ge(n,o){de.forEach(function(t,e){e=o.children[t.sortableIndex+(n?Number(e):0)];e?o.insertBefore(t,e):o.appendChild(t)})}function me(){ue.forEach(function(t){t!==le&&t.parentNode&&t.parentNode.removeChild(t)})}return Ft.mount(new function(){function t(){for(var t in this.defaults={scroll:!0,forceAutoScrollFallback:!1,scrollSensitivity:30,scrollSpeed:10,bubbleScroll:!0},this)"_"===t.charAt(0)&&"function"==typeof this[t]&&(this[t]=this[t].bind(this))}return t.prototype={dragStarted:function(t){t=t.originalEvent;this.sortable.nativeDraggable?h(document,"dragover",this._handleAutoScroll):this.options.supportPointer?h(document,"pointermove",this._handleFallbackAutoScroll):t.touches?h(document,"touchmove",this._handleFallbackAutoScroll):h(document,"mousemove",this._handleFallbackAutoScroll)},dragOverCompleted:function(t){t=t.originalEvent;this.options.dragOverBubble||t.rootEl||this._handleAutoScroll(t)},drop:function(){this.sortable.nativeDraggable?f(document,"dragover",this._handleAutoScroll):(f(document,"pointermove",this._handleFallbackAutoScroll),f(document,"touchmove",this._handleFallbackAutoScroll),f(document,"mousemove",this._handleFallbackAutoScroll)),te(),Jt(),clearTimeout(g),g=void 0},nulling:function(){Vt=Gt=zt=Qt=Zt=Ut=qt=null,$t.length=0},_handleFallbackAutoScroll:function(t){this._handleAutoScroll(t,!0)},_handleAutoScroll:function(e,n){var o,i=this,r=(e.touches?e.touches[0]:e).clientX,a=(e.touches?e.touches[0]:e).clientY,t=document.elementFromPoint(r,a);Vt=e,n||this.options.forceAutoScrollFallback||w||y||u?(ne(e,this.options,t,n),o=M(t,!0),!Qt||Zt&&r===Ut&&a===qt||(Zt&&te(),Zt=setInterval(function(){var t=M(document.elementFromPoint(r,a),!0);t!==o&&(o=t,Jt()),ne(e,i.options,t,n)},10),Ut=r,qt=a)):this.options.bubbleScroll&&M(t,!0)!==O()?ne(e,this.options,M(t,!1),!1):Jt()}},a(t,{pluginName:"scroll",initializeByDefault:!0})}),Ft.mount(ie,oe),Ft.mount(new function(){function t(){this.defaults={swapClass:"sortable-swap-highlight"}}return t.prototype={dragStart:function(t){t=t.dragEl;ee=t},dragOverValid:function(t){var e=t.completed,n=t.target,o=t.onMove,i=t.activeSortable,r=t.changed,a=t.cancel;i.options.swap&&(t=this.sortable.el,i=this.options,n&&n!==t&&(t=ee,ee=!1!==o(n)?(k(n,i.swapClass,!0),n):null,t&&t!==ee&&k(t,i.swapClass,!1)),r(),e(!0),a())},drop:function(t){var e,n,o=t.activeSortable,i=t.putSortable,r=t.dragEl,a=i||this.sortable,l=this.options;ee&&k(ee,l.swapClass,!1),ee&&(l.swap||i&&i.options.swap)&&r!==ee&&(a.captureAnimationState(),a!==o&&o.captureAnimationState(),n=ee,t=(e=r).parentNode,l=n.parentNode,t&&l&&!t.isEqualNode(n)&&!l.isEqualNode(e)&&(i=j(e),r=j(n),t.isEqualNode(l)&&i<r&&r++,t.insertBefore(n,t.children[i]),l.insertBefore(e,l.children[r])),a.animateAll(),a!==o&&o.animateAll())},nulling:function(){ee=null}},a(t,{pluginName:"swap",eventProperties:function(){return{swapItem:ee}}})}),Ft.mount(new function(){function t(o){for(var t in this)"_"===t.charAt(0)&&"function"==typeof this[t]&&(this[t]=this[t].bind(this));o.options.avoidImplicitDeselect||(o.options.supportPointer?h(document,"pointerup",this._deselectMultiDrag):(h(document,"mouseup",this._deselectMultiDrag),h(document,"touchend",this._deselectMultiDrag))),h(document,"keydown",this._checkKeyDown),h(document,"keyup",this._checkKeyUp),this.defaults={selectedClass:"sortable-selected",multiDragKey:null,avoidImplicitDeselect:!1,setData:function(t,e){var n="";ue.length&&ae===o?ue.forEach(function(t,e){n+=(e?", ":"")+t.textContent}):n=e.textContent,t.setData("Text",n)}}}return t.prototype={multiDragKeyDown:!1,isMultiDrag:!1,delayStartGlobal:function(t){t=t.dragEl;le=t},delayEnded:function(){this.isMultiDrag=~ue.indexOf(le)},setupClone:function(t){var e=t.sortable,t=t.cancel;if(this.isMultiDrag){for(var n=0;n<ue.length;n++)de.push(_(ue[n])),de[n].sortableIndex=ue[n].sortableIndex,de[n].draggable=!1,de[n].style["will-change"]="",k(de[n],this.options.selectedClass,!1),ue[n]===le&&k(de[n],this.options.chosenClass,!1);e._hideClone(),t()}},clone:function(t){var e=t.sortable,n=t.rootEl,o=t.dispatchSortableEvent,t=t.cancel;this.isMultiDrag&&(this.options.removeCloneOnHide||ue.length&&ae===e&&(ge(!0,n),o("clone"),t()))},showClone:function(t){var e=t.cloneNowShown,n=t.rootEl,t=t.cancel;this.isMultiDrag&&(ge(!1,n),de.forEach(function(t){R(t,"display","")}),e(),ce=!1,t())},hideClone:function(t){var e=this,n=(t.sortable,t.cloneNowHidden),t=t.cancel;this.isMultiDrag&&(de.forEach(function(t){R(t,"display","none"),e.options.removeCloneOnHide&&t.parentNode&&t.parentNode.removeChild(t)}),n(),ce=!0,t())},dragStartGlobal:function(t){t.sortable;!this.isMultiDrag&&ae&&ae.multiDrag._deselectMultiDrag(),ue.forEach(function(t){t.sortableIndex=j(t)}),ue=ue.sort(function(t,e){return t.sortableIndex-e.sortableIndex}),pe=!0},dragStarted:function(t){var e,n=this,t=t.sortable;this.isMultiDrag&&(this.options.sort&&(t.captureAnimationState(),this.options.animation&&(ue.forEach(function(t){t!==le&&R(t,"position","absolute")}),e=X(le,!1,!0,!0),ue.forEach(function(t){t!==le&&C(t,e)}),he=fe=!0)),t.animateAll(function(){he=fe=!1,n.options.animation&&ue.forEach(function(t){T(t)}),n.options.sort&&me()}))},dragOver:function(t){var e=t.target,n=t.completed,t=t.cancel;fe&&~ue.indexOf(e)&&(n(!1),t())},revert:function(t){var n,o,e=t.fromSortable,i=t.rootEl,r=t.sortable,a=t.dragRect;1<ue.length&&(ue.forEach(function(t){r.addAnimationState({target:t,rect:fe?X(t):a}),T(t),t.fromRect=a,e.removeAnimationState(t)}),fe=!1,n=!this.options.removeCloneOnHide,o=i,ue.forEach(function(t,e){e=o.children[t.sortableIndex+(n?Number(e):0)];e?o.insertBefore(t,e):o.appendChild(t)}))},dragOverCompleted:function(t){var e,n=t.sortable,o=t.isOwner,i=t.insertion,r=t.activeSortable,a=t.parentEl,l=t.putSortable,t=this.options;i&&(o&&r._hideClone(),he=!1,t.animation&&1<ue.length&&(fe||!o&&!r.options.sort&&!l)&&(e=X(le,!1,!0,!0),ue.forEach(function(t){t!==le&&(C(t,e),a.appendChild(t))}),fe=!0),o||(fe||me(),1<ue.length?(o=ce,r._showClone(n),r.options.animation&&!ce&&o&&de.forEach(function(t){r.addAnimationState({target:t,rect:se}),t.fromRect=se,t.thisAnimationDuration=null})):r._showClone(n)))},dragOverAnimationCapture:function(t){var e=t.dragRect,n=t.isOwner,t=t.activeSortable;ue.forEach(function(t){t.thisAnimationDuration=null}),t.options.animation&&!n&&t.multiDrag.isMultiDrag&&(se=a({},e),e=v(le,!0),se.top-=e.f,se.left-=e.e)},dragOverAnimationComplete:function(){fe&&(fe=!1,me())},drop:function(t){var e=t.originalEvent,n=t.rootEl,o=t.parentEl,i=t.sortable,r=t.dispatchSortableEvent,a=t.oldIndex,l=t.putSortable,s=l||this.sortable;if(e){var c,u,d,h=this.options,f=o.children;if(!pe)if(h.multiDragKey&&!this.multiDragKeyDown&&this._deselectMultiDrag(),k(le,h.selectedClass,!~ue.indexOf(le)),~ue.indexOf(le))ue.splice(ue.indexOf(le),1),re=null,z({sortable:i,rootEl:n,name:"deselect",targetEl:le,originalEvent:e});else{if(ue.push(le),z({sortable:i,rootEl:n,name:"select",targetEl:le,originalEvent:e}),e.shiftKey&&re&&i.el.contains(re)){var p=j(re),t=j(le);if(~p&&~t&&p!==t)for(var g,m=p<t?(g=p,t):(g=t,p+1);g<m;g++)~ue.indexOf(f[g])||(k(f[g],h.selectedClass,!0),ue.push(f[g]),z({sortable:i,rootEl:n,name:"select",targetEl:f[g],originalEvent:e}))}else re=le;ae=s}pe&&this.isMultiDrag&&(fe=!1,(o[K].options.sort||o!==n)&&1<ue.length&&(c=X(le),u=j(le,":not(."+this.options.selectedClass+")"),!he&&h.animation&&(le.thisAnimationDuration=null),s.captureAnimationState(),he||(h.animation&&(le.fromRect=c,ue.forEach(function(t){var e;t.thisAnimationDuration=null,t!==le&&(e=fe?X(t):c,t.fromRect=e,s.addAnimationState({target:t,rect:e}))})),me(),ue.forEach(function(t){f[u]?o.insertBefore(t,f[u]):o.appendChild(t),u++}),a===j(le)&&(d=!1,ue.forEach(function(t){t.sortableIndex!==j(t)&&(d=!0)}),d&&(r("update"),r("sort")))),ue.forEach(function(t){T(t)}),s.animateAll()),ae=s),(n===o||l&&"clone"!==l.lastPutMode)&&de.forEach(function(t){t.parentNode&&t.parentNode.removeChild(t)})}},nullingGlobal:function(){this.isMultiDrag=pe=!1,de.length=0},destroyGlobal:function(){this._deselectMultiDrag(),f(document,"pointerup",this._deselectMultiDrag),f(document,"mouseup",this._deselectMultiDrag),f(document,"touchend",this._deselectMultiDrag),f(document,"keydown",this._checkKeyDown),f(document,"keyup",this._checkKeyUp)},_deselectMultiDrag:function(t){if(!(void 0!==pe&&pe||ae!==this.sortable||t&&P(t.target,this.options.draggable,this.sortable.el,!1)||t&&0!==t.button))for(;ue.length;){var e=ue[0];k(e,this.options.selectedClass,!1),ue.shift(),z({sortable:this.sortable,rootEl:this.sortable.el,name:"deselect",targetEl:e,originalEvent:t})}},_checkKeyDown:function(t){t.key===this.options.multiDragKey&&(this.multiDragKeyDown=!0)},_checkKeyUp:function(t){t.key===this.options.multiDragKey&&(this.multiDragKeyDown=!1)}},a(t,{pluginName:"multiDrag",utils:{select:function(t){var e=t.parentNode[K];e&&e.options.multiDrag&&!~ue.indexOf(t)&&(ae&&ae!==e&&(ae.multiDrag._deselectMultiDrag(),ae=e),k(t,e.options.selectedClass,!0),ue.push(t))},deselect:function(t){var e=t.parentNode[K],n=ue.indexOf(t);e&&e.options.multiDrag&&~n&&(k(t,e.options.selectedClass,!1),ue.splice(n,1))}},eventProperties:function(){var n=this,o=[],i=[];return ue.forEach(function(t){var e;o.push({multiDragElement:t,index:t.sortableIndex}),e=fe&&t!==le?-1:fe?j(t,":not(."+n.options.selectedClass+")"):j(t),i.push({multiDragElement:t,index:e})}),{items:r(ue),clones:[].concat(de),oldIndicies:o,newIndicies:i}},optionListeners:{multiDragKey:function(t){return"ctrl"===(t=t.toLowerCase())?t="Control":1<t.length&&(t=t.charAt(0).toUpperCase()+t.substr(1)),t}}})}),Ft});
+</script>
+<script>
+(function () {
+  var KEY = "toc-season-board-v1";
+  var PREF = "toc-season-board-prefs";
+
+  function seed() {
+    var eps = {};
+    var order = [];
+    function add(id, title, genre, logline) { eps[id] = { title: title, genre: genre || "", logline: logline || "" }; order.push(id); return id; }
+    var s1 = [
+      add("my-old-man", "My Old Man", "Dark comedy", ""),
+      add("my-best-fiend", "My Best Fiend", "Psychological horror", "A successful young woman is terrorized by the imaginary friend of her childhood, who has come to take what's owed her."),
+      add("one-way-ticket", "One Way Ticket", "Existential fantasy", "A man bent on suicide boards a train, which turns out to be headed to the Underworld. If he decides to live, though, will he be able to get back?"),
+      add("son-of-poseidon", "Son of Poseidon", "Drama / fairy tale", "A teenage girl falls in love with a mysterious young man who's visiting Brighton Beach for the summer. Her mother is worried and ultimately is right to be: the young man is the son of Poseidon."),
+      add("we-love-me", "We Love Me", "Fantastical comedy", "An \"energy vampire\" spinning instructor falls for a normie. But in order to be in the relationship, she will have to give up her immortality, and the relentless attention that feeds it."),
+      add("the-coming", "The Coming", "Drama", "A Hasidic girl is identified by a radical young rabbi as potentially being the Tzadik ha'Dor, the one their people have been awaiting for thousands of years. Her father wants her free of this cult; her mother can't stand the thought of her leaving the faith."),
+      add("chorus-of-demons", "A Chorus of Demons", "Existential horror", "One day, the city itself becomes a malevolent entity pursuing Adam Miller. All eyes, all windows and cars and walls and signage are a part of the evil will. A mental patient finally finds him and tells him he's suffering adverse drug effects, and there is a way out. Will he take it?"),
+      add("four-dimensional-chess", "Four-Dimensional Chess", "Sci-fi thriller", "In the latest game of wizard's chess that determines the fate of the world, Willie is committed to seeing his grandson's death from leukemia undone. But his eternal adversary, Bruno, has ensured that this move would exact an unbearable cost."),
+      add("paper-cranes", "Paper Cranes Are Flying", "Drama / romance", "A Chinese restaurant owner is shocked when he receives an order for potstickers, clearly written in the handwriting of the woman who left him waiting at the airport thirty years before. Why is she back now?"),
+      add("sleeping", "Sleeping, She Dreams of Us", "Supernatural thriller", "Distraught and heartbroken that his wife is in a deep coma after a car accident, a man goes to a nearby bar, where he strikes up a conversation with Veronica. Who turns out to be a character from his wife's long-abandoned novel. They are both part of his sleeping wife's dream.")
+    ];
+    var b = [
+      add("childs-play", "Child's Play", "Action / comedy", "A little boy successfully uses ancient Aztec magic to get back at his bullies."),
+      add("tree-grows", "A Tree Grows in Brooklyn", "Romantic comedy", "A woman is exasperated with what she believes is a feature of her husband's incipient mental illness: he talks to plants. Until one day, he manages to find their runaway daughter by communicating with the trees in the park."),
+      add("drop-of-poison", "A Drop of Poison", "Horror", "An insecure young writer takes a date to an avant-garde downtown play and whispers to her derisively about it. But when she tells him to \"Shut up, Michael!\" the world has subtly shifted. And now he finds himself in 1972, where the play is the hottest thing going and he is the fish out of water."),
+      add("dr-schloss", "Waiting for Dr. Schloss", "Existential comedy / horror", "A woman waits and waits in a doctor's office until she eventually emerges into a no-man's-land and must find her way back. If there is one."),
+      add("strange-currencies", "Strange Currencies", "Drama with comedic elements", "Piano tuner / composer."),
+      add("what-is-real", "What Is Real Is Real", "Sci-fi horror", "Man escapes into the internet and finds he can be anywhere, be anyone, do anything. And that this is a terrible cage."),
+      add("throw-away-the-key", "Throw Away the Key", "Existential horror", "A young woman is drawn into a Kafkaesque nightmare when she uses a forbidden word at work."),
+      add("twos-a-crowd", "Two's a Crowd", "Horror", "Repaying his real kindness, an old flame gets revenge on a man's boss by marshaling her family of small creatures to devour him."),
+      add("blind-date", "Blind Date", "Comedy", "A young man goes on a blind date with a girl who becomes possessed by the spirit of his grandfather, who gives him romantic advice."),
+      add("are-you-x", "\"Are You X By Any Chance?\"", "Social thriller", "A lost young woman, newly moved to NYC, joins a religious cult in order to belong. But finds it takes her even further away from herself."),
+      add("politics-as-usual", "Politics as Usual", "Yokai ghost story", "A young politician must negotiate with the ghost of the man who held the seat she is trying to fill."),
+      add("are-you-it", "Are You It?", "Magical realist comedy / drama", "A husband and wife wrestle with the discovery that she is and always has been a frog.")
+    ];
+    return {
+      version: 1,
+      episodes: eps,
+      seasons: [{ id: "s1", name: "Season 1", note: "Opens with the ham radio broadcast.", eps: s1 }],
+      bteam: b,
+      snapshots: []
+    };
+  }
+
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function valid(s) {
+    return s && typeof s === "object" && s.episodes && Array.isArray(s.seasons) && Array.isArray(s.bteam) &&
+      s.seasons.every(function (x) { return x && typeof x.id === "string" && Array.isArray(x.eps); });
+  }
+
+  var state;
+  try { state = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { state = null; }
+  if (!valid(state)) state = seed();
+  if (!Array.isArray(state.snapshots)) state.snapshots = [];
+
+  var prefs = {};
+  try { prefs = JSON.parse(localStorage.getItem(PREF) || "{}") || {}; } catch (e) { prefs = {}; }
+
+  var undoStack = [], redoStack = [];
+  var openActions = null, editing = null, viewing = {};
+
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function savePrefs() { try { localStorage.setItem(PREF, JSON.stringify(prefs)); } catch (e) {} }
+
+  function commit(mutate, msg, offerUndo) {
+    undoStack.push(clone(state));
+    if (undoStack.length > 150) undoStack.shift();
+    redoStack = [];
+    mutate(state);
+    persist(); render();
+    if (msg) flash(msg, offerUndo);
+  }
+  function undo() {
+    if (!undoStack.length) return;
+    redoStack.push(clone(state)); state = undoStack.pop();
+    persist(); render(); flash("Undone");
+  }
+  function redo() {
+    if (!redoStack.length) return;
+    undoStack.push(clone(state)); state = redoStack.pop();
+    persist(); render(); flash("Redone");
+  }
+
+  var statusEl = document.getElementById("status"), statusText = document.getElementById("statusText"), statusUndo = document.getElementById("statusUndo"), st;
+  function flash(msg, offerUndo) {
+    statusText.textContent = msg; statusUndo.hidden = !offerUndo; statusEl.hidden = false;
+    clearTimeout(st); st = setTimeout(function () { statusEl.hidden = true; }, offerUndo ? 6000 : 2200);
+  }
+  statusUndo.addEventListener("click", function () { statusEl.hidden = true; undo(); });
+
+  function listName(key) {
+    if (key === "bteam") return "B team";
+    var s = state.seasons.filter(function (x) { return x.id === key; })[0];
+    return s ? (s.name || "Untitled season") : "";
+  }
+  function arrFor(st0, key) {
+    if (key === "bteam") return st0.bteam;
+    var s = st0.seasons.filter(function (x) { return x.id === key; })[0];
+    return s ? s.eps : null;
+  }
+  function whereIs(id) {
+    if (state.bteam.indexOf(id) > -1) return "bteam";
+    for (var i = 0; i < state.seasons.length; i++) if (state.seasons[i].eps.indexOf(id) > -1) return state.seasons[i].id;
+    return null;
+  }
+  function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+
+  var board = document.getElementById("board");
+  var sortables = [];
+
+  function render() {
+    sortables.forEach(function (s) { s.destroy(); }); sortables = [];
+    board.innerHTML = "";
+    state.seasons.forEach(function (s) { board.appendChild(column(s.id, s)); });
+    board.appendChild(column("bteam", null));
+    document.querySelectorAll("ol.list").forEach(function (ol) {
+      sortables.push(Sortable.create(ol, {
+        group: "eps", handle: ".grip", animation: 150, ghostClass: "ghost", chosenClass: "chosen",
+        filter: ".empty-hint",
+        onStart: function () { pre = clone(state); },
+        onEnd: function () { applyDomOrder(); }
+      }));
+    });
+    document.getElementById("undoBtn").disabled = !undoStack.length;
+    document.getElementById("redoBtn").disabled = !redoStack.length;
+    renderSnaps();
+  }
+  var pre = null;
+  function applyDomOrder() {
+    var next = clone(state);
+    document.querySelectorAll("ol.list").forEach(function (ol) {
+      var ids = Array.prototype.map.call(ol.querySelectorAll("li.ep"), function (li) { return li.dataset.id; });
+      var arr = arrFor(next, ol.dataset.key); if (arr) { arr.length = 0; Array.prototype.push.apply(arr, ids); }
+    });
+    if (JSON.stringify(next) === JSON.stringify(state)) { render(); return; }
+    undoStack.push(pre || clone(state)); if (undoStack.length > 150) undoStack.shift();
+    redoStack = []; state = next; pre = null;
+    persist(); render();
+  }
+
+  function column(key, season) {
+    var col = el("div", "col" + (season ? "" : " bteam"));
+    var head = el("div", "col-head");
+    var titleRow = el("div", "col-title");
+    if (season) {
+      var name = el("input"); name.type = "text"; name.value = season.name; name.id = "name-" + season.id; name.setAttribute("aria-label", "Season name");
+      name.addEventListener("change", function () { var v = name.value.trim() || season.name; commit(function (s) { s.seasons.forEach(function (x) { if (x.id === season.id) x.name = v; }); }); });
+      name.addEventListener("keydown", function (e) { if (e.key === "Enter") name.blur(); });
+      titleRow.appendChild(name);
+    } else {
+      titleRow.appendChild(el("span", "static", "B team"));
+    }
+    var arr = season ? season.eps : state.bteam;
+    titleRow.appendChild(el("span", "count", arr.length + (arr.length === 1 ? " episode" : " episodes")));
+    if (season) {
+      var del = el("button", "quiet danger", "✕"); del.type = "button"; del.title = "Remove this season (its episodes go to the B team)"; del.setAttribute("aria-label", "Remove " + season.name);
+      del.addEventListener("click", function () {
+        commit(function (s) {
+          var idx = s.seasons.map(function (x) { return x.id; }).indexOf(season.id);
+          if (idx < 0) return;
+          Array.prototype.push.apply(s.bteam, s.seasons[idx].eps);
+          s.seasons.splice(idx, 1);
+        }, season.name + " removed; its episodes moved to the B team.", true);
+      });
+      titleRow.appendChild(del);
+    }
+    head.appendChild(titleRow);
+    if (season) {
+      var note = el("input", "note"); note.type = "text"; note.value = season.note || ""; note.placeholder = "Add a note…"; note.id = "note-" + season.id; note.setAttribute("aria-label", season.name + " note");
+      note.addEventListener("change", function () { var v = note.value; commit(function (s) { s.seasons.forEach(function (x) { if (x.id === season.id) x.note = v; }); }); });
+      note.addEventListener("keydown", function (e) { if (e.key === "Enter") note.blur(); });
+      head.appendChild(note);
+    } else {
+      head.appendChild(el("div", "note", "Unordered pool. Drag in or out."));
+    }
+    col.appendChild(head);
+
+    var ol = el("ol", "list"); ol.dataset.key = key;
+    arr.forEach(function (id, i) { if (state.episodes[id]) ol.appendChild(card(id, key, season ? i + 1 : null)); });
+    col.appendChild(ol);
+    if (!arr.length) { var h = el("div", "empty-hint", "Drag episodes here"); col.insertBefore(h, ol); }
+
+    if (!season) col.appendChild(addForm());
+    return col;
+  }
+
+  function card(id, key, n) {
+    var ep = state.episodes[id];
+    var li = el("li", "ep"); li.dataset.id = id;
+    var grip = el("span", "grip", "⠿"); grip.setAttribute("aria-hidden", "true"); grip.title = "Drag to move";
+    li.appendChild(grip);
+    if (n != null) li.appendChild(el("span", "num", String(n)));
+    var body = el("div", "body");
+    body.appendChild(el("div", "t", ep.title));
+    if (ep.genre) body.appendChild(el("div", "g", ep.genre));
+    if (ep.logline) body.appendChild(el("div", "lg", ep.logline));
+    li.appendChild(body);
+    var more = el("button", "quiet more", "⋯"); more.type = "button"; more.setAttribute("aria-label", "Actions for " + ep.title); more.setAttribute("aria-expanded", openActions === id ? "true" : "false");
+    more.addEventListener("click", function () { openActions = openActions === id ? null : id; editing = null; render(); });
+    li.appendChild(more);
+
+    if (editing === id) {
+      li.appendChild(editForm(id));
+    } else if (openActions === id) {
+      var a = el("div", "actions");
+      var arr = arrFor(state, key), idx = arr.indexOf(id);
+      var up = el("button", "", "↑ Up"); up.type = "button"; up.disabled = idx === 0;
+      up.addEventListener("click", function () { commit(function (s) { var r = arrFor(s, key); r.splice(idx, 1); r.splice(idx - 1, 0, id); }); });
+      var dn = el("button", "", "↓ Down"); dn.type = "button"; dn.disabled = idx === arr.length - 1;
+      dn.addEventListener("click", function () { commit(function (s) { var r = arrFor(s, key); r.splice(idx, 1); r.splice(idx + 1, 0, id); }); });
+      a.appendChild(up); a.appendChild(dn);
+      var targets = state.seasons.map(function (s) { return s.id; }).concat(["bteam"]).filter(function (k) { return k !== key; });
+      targets.forEach(function (k) {
+        var b = el("button", "", "→ " + listName(k)); b.type = "button";
+        b.addEventListener("click", function () {
+          commit(function (s) { var from = arrFor(s, key); from.splice(from.indexOf(id), 1); arrFor(s, k).push(id); }, ep.title + " moved to " + listName(k) + ".", true);
+        });
+        a.appendChild(b);
+      });
+      var ed = el("button", "", "Edit"); ed.type = "button";
+      ed.addEventListener("click", function () { editing = id; render(); var f = document.getElementById("edit-title-" + id); if (f) f.focus(); });
+      var rm = el("button", "danger", "Delete"); rm.type = "button";
+      rm.addEventListener("click", function () {
+        openActions = null;
+        commit(function (s) { var r = arrFor(s, key); r.splice(r.indexOf(id), 1); delete s.episodes[id]; }, ep.title + " deleted.", true);
+      });
+      a.appendChild(ed); a.appendChild(rm);
+      li.appendChild(a);
+    }
+    return li;
+  }
+
+  function editForm(id) {
+    var ep = state.episodes[id];
+    var f = el("form", "edit");
+    var t = el("input"); t.id = "edit-title-" + id; t.value = ep.title; t.placeholder = "Title"; t.setAttribute("aria-label", "Title");
+    var g = el("input"); g.id = "edit-genre-" + id; g.value = ep.genre; g.placeholder = "Genre"; g.setAttribute("aria-label", "Genre");
+    var l = el("textarea"); l.id = "edit-logline-" + id; l.value = ep.logline; l.placeholder = "Logline"; l.setAttribute("aria-label", "Logline");
+    var row = el("div", "row");
+    var save = el("button", "primary", "Save"); save.type = "submit";
+    var cancel = el("button", "", "Cancel"); cancel.type = "button";
+    cancel.addEventListener("click", function () { editing = null; render(); });
+    row.appendChild(save); row.appendChild(cancel);
+    f.appendChild(t); f.appendChild(g); f.appendChild(l); f.appendChild(row);
+    f.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var nt = t.value.trim(); if (!nt) { t.focus(); return; }
+      editing = null; openActions = null;
+      commit(function (s) { s.episodes[id] = { title: nt, genre: g.value.trim(), logline: l.value.trim() }; }, "Saved.");
+    });
+    return f;
+  }
+
+  function addForm() {
+    var f = el("form", "add");
+    var t = el("input"); t.id = "add-title"; t.placeholder = "+ Add an episode idea"; t.setAttribute("aria-label", "New episode title");
+    var g = el("input"); g.id = "add-genre"; g.placeholder = "Genre (optional)"; g.setAttribute("aria-label", "New episode genre"); g.hidden = true;
+    var b = el("button", "", "Add"); b.type = "submit"; b.hidden = true;
+    t.addEventListener("input", function () { var on = !!t.value.trim(); g.hidden = !on; b.hidden = !on; });
+    f.appendChild(t); f.appendChild(g); f.appendChild(b);
+    f.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var title = t.value.trim(); if (!title) return;
+      var base = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "ep", id = base, i = 2;
+      while (state.episodes[id]) id = base + "-" + (i++);
+      commit(function (s) { s.episodes[id] = { title: title, genre: g.value.trim(), logline: "" }; s.bteam.push(id); }, title + " added to the B team.", true);
+    });
+    return f;
+  }
+
+  // Snapshots
+  var snapForm = document.getElementById("snapForm"), snapNote = document.getElementById("snapNote");
+  document.getElementById("snapBtn").addEventListener("click", function () { snapForm.hidden = false; snapNote.focus(); snapForm.scrollIntoView({ block: "nearest" }); });
+  document.getElementById("snapCancel").addEventListener("click", function () { snapForm.hidden = true; snapNote.value = ""; });
+  snapForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var note = snapNote.value.trim();
+    var data = { episodes: clone(state.episodes), seasons: clone(state.seasons), bteam: clone(state.bteam) };
+    commit(function (s) { s.snapshots.unshift({ id: "snap-" + Date.now(), date: new Date().toISOString(), note: note, data: data }); }, "Snapshot saved.", true);
+    snapForm.hidden = true; snapNote.value = "";
+  });
+
+  function fmtDate(iso) {
+    try {
+      var d = new Date(iso);
+      return d.toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" }) + " · " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+    } catch (e) { return iso; }
+  }
+  function summary(d) {
+    return d.seasons.map(function (s) { return (s.name || "Season") + ": " + s.eps.length; }).concat(["B team: " + d.bteam.length]).join(" · ");
+  }
+  function renderSnaps() {
+    var ul = document.getElementById("snapList"); ul.innerHTML = "";
+    document.getElementById("snapCount").textContent = state.snapshots.length ? state.snapshots.length + (state.snapshots.length === 1 ? " saved" : " saved") : "";
+    if (!state.snapshots.length) { ul.appendChild(el("li", "empty-hint", "No snapshots yet. Save one to keep a dated record of a build and the thinking behind it.")); return; }
+    state.snapshots.forEach(function (sn) {
+      var li = el("li", "snap");
+      var top = el("div", "snap-top");
+      var left = el("div");
+      left.appendChild(el("div", "snap-date", fmtDate(sn.date)));
+      left.appendChild(el("div", "snap-sum", summary(sn.data)));
+      top.appendChild(left);
+      var row = el("div", "row");
+      var v = el("button", "", viewing[sn.id] ? "Hide" : "View"); v.type = "button";
+      v.addEventListener("click", function () { viewing[sn.id] = !viewing[sn.id]; renderSnaps(); });
+      var r = el("button", "", "Restore"); r.type = "button";
+      r.addEventListener("click", function () {
+        commit(function (s) { s.episodes = clone(sn.data.episodes); s.seasons = clone(sn.data.seasons); s.bteam = clone(sn.data.bteam); }, "Restored the " + fmtDate(sn.date) + " build.", true);
+      });
+      var d = el("button", "danger", "Delete"); d.type = "button";
+      d.addEventListener("click", function () { commit(function (s) { s.snapshots = s.snapshots.filter(function (x) { return x.id !== sn.id; }); }, "Snapshot deleted.", true); });
+      row.appendChild(v); row.appendChild(r); row.appendChild(d);
+      top.appendChild(row);
+      li.appendChild(top);
+      if (sn.note) li.appendChild(el("div", "snap-note", sn.note));
+      if (viewing[sn.id]) {
+        var view = el("div", "snap-view");
+        sn.data.seasons.forEach(function (s) {
+          var box = el("div"); box.appendChild(el("h3", "", s.name || "Season"));
+          if (s.note) box.appendChild(el("div", "g", s.note));
+          var ol = el("ol"); s.eps.forEach(function (id) { var e = sn.data.episodes[id]; if (e) ol.appendChild(el("li", "", e.title)); });
+          box.appendChild(ol); view.appendChild(box);
+        });
+        var bb = el("div"); bb.appendChild(el("h3", "", "B team"));
+        var bu = el("ul"); sn.data.bteam.forEach(function (id) { var e = sn.data.episodes[id]; if (e) bu.appendChild(el("li", "", e.title)); });
+        bb.appendChild(bu); view.appendChild(bb);
+        li.appendChild(view);
+      }
+      ul.appendChild(li);
+    });
+  }
+
+  // Toolbar
+  document.getElementById("undoBtn").addEventListener("click", undo);
+  document.getElementById("redoBtn").addEventListener("click", redo);
+  document.getElementById("newSeasonBtn").addEventListener("click", function () {
+    var n = state.seasons.length + 1, id = "s" + Date.now();
+    commit(function (s) { s.seasons.push({ id: id, name: "Season " + n, note: "", eps: [] }); }, "Season " + n + " added.", true);
+  });
+
+  function asMarkdown() {
+    var lines = ["# THE OTHER CITY — Episode List", ""];
+    state.seasons.forEach(function (s) {
+      lines.push("## " + (s.name || "Season"), "");
+      if (s.note) lines.push(s.note, "");
+      s.eps.forEach(function (id, i) { var e = state.episodes[id]; if (e) lines.push((i + 1) + ". " + e.title); });
+      lines.push("");
+    });
+    lines.push("## B team", "");
+    state.bteam.forEach(function (id) { var e = state.episodes[id]; if (e) lines.push("- " + e.title); });
+    return lines.join("\n") + "\n";
+  }
+  document.getElementById("copyBtn").addEventListener("click", function () {
+    var text = asMarkdown();
+    function fallback() {
+      var ta = document.createElement("textarea"); ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "absolute"; ta.style.left = "-9999px";
+      document.body.appendChild(ta); ta.select(); var ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta); flash(ok ? "List copied." : "Copy was blocked by the browser.");
+    }
+    try { navigator.clipboard.writeText(text).then(function () { flash("List copied."); }, fallback); } catch (e) { fallback(); }
+  });
+  document.getElementById("exportBtn").addEventListener("click", function () {
+    var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    var a = document.createElement("a");
+    var d = new Date(), pad = function (x) { return String(x).padStart(2, "0"); };
+    a.href = URL.createObjectURL(blob);
+    a.download = "toc-season-board-" + String(d.getFullYear()).slice(2) + pad(d.getMonth() + 1) + pad(d.getDate()) + "-" + pad(d.getHours()) + pad(d.getMinutes()) + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    flash("Exported.");
+  });
+  document.getElementById("importFile").addEventListener("change", function (e) {
+    var file = e.target.files && e.target.files[0]; if (!file) return;
+    var r = new FileReader();
+    r.onload = function () {
+      var data; try { data = JSON.parse(r.result); } catch (err) { flash("That file isn't valid JSON."); return; }
+      if (!valid(data)) { flash("That file isn't a season board export."); return; }
+      if (!Array.isArray(data.snapshots)) data.snapshots = [];
+      commit(function (s) { s.episodes = data.episodes; s.seasons = data.seasons; s.bteam = data.bteam; s.snapshots = data.snapshots; }, "Imported " + file.name + ".", true);
+    };
+    r.readAsText(file);
+    e.target.value = "";
+  });
+
+  var lt = document.getElementById("loglineToggle");
+  lt.checked = !!prefs.loglines; document.body.classList.toggle("show-loglines", lt.checked);
+  lt.addEventListener("change", function () { prefs.loglines = lt.checked; savePrefs(); document.body.classList.toggle("show-loglines", lt.checked); });
+
+  document.addEventListener("keydown", function (e) {
+    var tag = (e.target.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea" || e.target.isContentEditable) return;
+    var mod = e.metaKey || e.ctrlKey;
+    if (mod && e.key.toLowerCase() === "z") { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
+    else if (mod && e.key.toLowerCase() === "y") { e.preventDefault(); redo(); }
+  });
+
+  render();
+})();
+</script>
+
+<script data-engagement-beacon="7">
+// Blocker-proof engagement beacon — see ~/Scripts/inject_beacon.py
+(function(){
+  var BEACON = 'https://media.thomaswoodrow.com/_e';
+  // The page's own tracking is left alone. These say which Plausible events it
+  // does NOT already fire, so the shim fills the gaps without double-counting.
+  var P_PLAY = true, P_MILESTONES = true, P_CARDS = true;
+  var sent = {};
+  // Plausible milestones keep their own dedupe: the server records every 10%,
+  // but the dashboard still gets 25/50/75 so its existing goals and history
+  // stay comparable. Two ladders, one pass.
+  var sentP = {};
+
+  function plaus(name, props){
+    if (typeof window.plausible === 'function') window.plausible(name, { props: props || {} });
+  }
+
+  function slug(){
+    var parts = location.pathname.split('/').filter(Boolean);
+    var first = parts[0] || 'root';
+    return first.replace(/\.html?$/i, '');
+  }
+  // The code rides on the URL, but only on the page that was actually linked.
+  // Click deeper into the same site and it's gone from location.search — so
+  // fall back to the referring page, which still carries it.
+  function refCode(){
+    var here = new URLSearchParams(location.search).get('ref');
+    if (here) return here;
+    try {
+      if (!document.referrer) return null;
+      var r = new URL(document.referrer);
+      if (r.origin !== location.origin) return null;   // only trust our own pages
+      return r.searchParams.get('ref');
+    } catch (err) { return null; }
+  }
+  // Raw fire — no dedupe. Used by dwell (repeats with a growing total) and
+  // clicks (each distinct link is its own event).
+  function sendRaw(event, pct){
+    try {
+      var q = new URLSearchParams({ e: event, s: slug(), p: String(Math.round(pct || 0)) });
+      var ref = refCode();
+      if (ref) q.set('ref', ref);
+      var u = BEACON + '?' + q.toString();
+      if (navigator.sendBeacon) navigator.sendBeacon(u);
+      else fetch(u, { keepalive: true, mode: 'no-cors' });
+    } catch (err) { /* tracking must never break the page */ }
+  }
+  // Once-per-event — for milestones that should fire exactly once (open, play,
+  // 25/50/75/complete, each card reached).
+  function send(event, pct){
+    if (sent[event]) return;
+    sent[event] = 1;
+    sendRaw(event, pct);
+  }
+
+  send('open', 0);
+
+  // ---- media depth -------------------------------------------------------
+  var st = new WeakMap();
+  function state(el){
+    if (!st.has(el)) st.set(el, { heard: 0, last: null });
+    return st.get(el);
+  }
+  function isMedia(el){ return el && (el.tagName === 'AUDIO' || el.tagName === 'VIDEO'); }
+  // The reel player swaps src via load(); each track counts from zero.
+  document.addEventListener('loadstart', function(e){
+    if (isMedia(e.target)) st.set(e.target, { heard: 0, last: null });
+  }, true);
+  function label(el){ return el.tagName === 'VIDEO' ? 'Video' : 'Audio'; }
+  document.addEventListener('play', function(e){
+    if (!isMedia(e.target)) return;
+    if (!sent.play && P_PLAY) plaus(label(e.target) + ' Play', { page: document.title });
+    send('play', 0);
+  }, true);
+  document.addEventListener('timeupdate', function(e){
+    var el = e.target;
+    if (!isMedia(el) || !isFinite(el.duration) || !el.duration) return;
+    var s = state(el), now = el.currentTime;
+    if (s.last !== null) {
+      // A real gap between timeupdates is small; anything bigger is a seek.
+      // Scale by playbackRate or someone listening at 2x reads as a scrubber.
+      var d = now - s.last, lim = 1.5 * Math.max(1, el.playbackRate);
+      if (d > 0 && d < lim) s.heard += d;
+    }
+    s.last = now;
+    var pct = s.heard / el.duration * 100;
+    // Every 10%. Quartiles are too coarse for long-form: on a 27-minute
+    // chapter the first checkpoint was ~7 minutes in, so anyone who listened
+    // for six minutes reported the same 0% as someone who bounced instantly.
+    [10, 20, 30, 40, 50, 60, 70, 80, 90].forEach(function(m){
+      if (pct < m) return;
+      send(String(m), m);
+    });
+    [25, 50, 75].forEach(function(m){
+      if (pct < m || sentP[m]) return;
+      sentP[m] = 1;
+      if (P_MILESTONES) plaus(label(el) + ' ' + m + '%', { page: document.title });
+    });
+  }, true);
+  document.addEventListener('ended', function(e){
+    if (!isMedia(e.target)) return;
+    if (!sent.complete && P_MILESTONES) plaus(label(e.target) + ' Completed', { page: document.title });
+    send('complete', 100);
+  }, true);
+
+  // ---- deck depth --------------------------------------------------------
+  // Same rule the deck's own Plausible tracking uses: the card whose band
+  // covers the viewport midline. Reports the furthest card reached, and which
+  // card is under the midline right now, for the per-card clock below.
+  //
+  // Three markup shapes, tried in order. This used to be section[data-card]
+  // alone, which is deck-template's shape — the DEPLOYED decks nest a card div
+  // inside a slide section instead, so the selector matched nothing and every
+  // deck recorded zero progress while looking like it worked. (Written without
+  // the literal markup: greps counting slides on a page must not match the
+  // tracker that counts them.)
+  var cards = document.querySelectorAll('section[data-card]');
+  if (!cards.length) cards = document.querySelectorAll('.deck .slide, main .slide');
+  if (!cards.length) cards = document.querySelectorAll('[data-card]');
+  // tickClock is assigned by the clock below. Calling it BEFORE curCard moves is
+  // what makes per-card time mean anything: the clock only wakes every 15s, so
+  // without this the whole interval is credited to whichever card happened to be
+  // on screen when it fired. A first run through the live deck proved it —
+  // 21 cards read, and the seconds landed on cards 17 and 20 alone.
+  var cardSecs = [], curCard = -1, tickClock = function(){};
+  if (cards.length && !/[?&]edit\b/.test(location.search)) {
+    var deepest = 0;
+    var checkCards = function(){
+      var mid = window.innerHeight / 2;
+      for (var i = 0; i < cards.length; i++) {
+        var r = cards[i].getBoundingClientRect();
+        if (r.top > mid || r.bottom < mid) continue;
+        if (i !== curCard) tickClock();     // credit the card being left
+        curCard = i;                       // where the clock accrues
+        if (i + 1 > deepest) {
+          deepest = i + 1;
+          if (P_CARDS) plaus('Card Viewed', { deck: document.title, card: deepest + '/' + cards.length });
+          // One event per card reached. pct is progress through the deck, so a
+          // half-read deck reads as 50 the same way half-heard audio does.
+          send('card' + deepest, deepest / cards.length * 100);
+        }
+        break;                             // one card owns the midline
+      }
+    };
+    addEventListener('scroll', checkCards, { passive: true });
+    addEventListener('resize', checkCards, { passive: true });
+    checkCards();
+  }
+
+  // ---- the activity clock: time on the page, and time per card -----------
+  // One clock drives both. Counts only visible, foregrounded seconds — a
+  // backgrounded tab doesn't accrue time — and attributes each tick to
+  // whichever card is under the viewport midline at that moment, so scrolling
+  // back to re-read a card adds to that card. Beaconed every 15s and on
+  // hide/unload, carrying cumulative totals in p, so the largest value
+  // server-side is the session total. Per-card events are 'cardt<N>'; only
+  // cards whose whole-second total changed are re-sent.
+  (function(){
+    var active = 0, last = Date.now(), visible = !document.hidden, sentSecs = [];
+    function tick(){
+      var now = Date.now(), d = (now - last) / 1000;
+      last = now;
+      // A gap far larger than the 15s cadence means sleep or a stalled timer,
+      // not reading. Dropping it keeps a laptop shut overnight from reading as
+      // eight hours on card 3.
+      if (!visible || d <= 0 || d > 60) return;
+      active += d;
+      if (curCard >= 0) cardSecs[curCard] = (cardSecs[curCard] || 0) + d;
+    }
+    tickClock = tick;   // so a card change settles the clock before moving on
+    function flush(){
+      tick();
+      if (active >= 1) sendRaw('dwell', active);
+      for (var i = 0; i < cardSecs.length; i++) {
+        var s = Math.round(cardSecs[i] || 0);
+        if (s >= 1 && s !== sentSecs[i]) { sentSecs[i] = s; sendRaw('cardt' + (i + 1), s); }
+      }
+    }
+    document.addEventListener('visibilitychange', function(){
+      tick(); visible = !document.hidden; last = Date.now();
+      if (document.hidden) flush();
+    });
+    addEventListener('pagehide', flush);
+    addEventListener('beforeunload', flush);
+    setInterval(flush, 15000);
+  })();
+
+  // ---- outbound clicks: what they clicked --------------------------------
+  // Delegated capture-phase listener on links leaving this page. The event
+  // string carries a short host+path label so the sheet shows WHICH link was
+  // followed. In-page anchors, mailto/tel and non-http schemes are ignored.
+  document.addEventListener('click', function(e){
+    try {
+      var a = e.target && e.target.closest && e.target.closest('a[href]');
+      if (!a) return;
+      var raw = a.getAttribute('href') || '';
+      if (/^(#|javascript:|mailto:|tel:|sms:)/i.test(raw)) return;
+      var u; try { u = new URL(a.href, location.href); } catch (_) { return; }
+      if (u.protocol !== 'http:' && u.protocol !== 'https:') return;
+      var path = (u.pathname && u.pathname !== '/') ? u.pathname : '';
+      var label = (u.host.replace(/^www\./, '') + path).slice(0, 24);
+      sendRaw('click:' + label, 0);
+    } catch (err) { /* never let tracking break a click */ }
+  }, true);
+})();
+</script>
+</body>
+</html>
